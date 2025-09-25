@@ -1,0 +1,23 @@
+Colony	Area	Population
+W. Unst	207.7	311
+Hermaness	1570	3872
+N.E. Unst	1588	495
+W. Yell	125.7	134
+Buravoe	353.4	485
+Fetlar	931	372
+Out Skerries	1616	284
+Noss	1317	10767
+Moussa	614	1975
+Dalsetter	60.12	970
+Sumburgh	1273	3243
+Fitful Head	595.7	500
+St Ninians	105.6	250
+S. Havra	241.9	925
+Reawick	111.1	970
+Vaila	302.4	278
+Papa Stour	808.9	1036
+Foula	2927	5570
+Eshaness	1069	2430
+Uyea	898.2	731
+Gruney	564.8	1364
+Fair Isle	3957	17000

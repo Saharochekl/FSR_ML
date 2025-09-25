@@ -1,0 +1,92 @@
+================================================================================
+Log-linear Y: log(y) ~ Area
+================================================================================
+                            OLS Regression Results                            
+==============================================================================
+Dep. Variable:                      y   R-squared:                       0.473
+Model:                            OLS   Adj. R-squared:                  0.446
+Method:                 Least Squares   F-statistic:                     17.92
+Date:                Thu, 25 Sep 2025   Prob (F-statistic):           0.000408
+Time:                        06:26:14   Log-Likelihood:                -29.065
+No. Observations:                  22   AIC:                             62.13
+Df Residuals:                      20   BIC:                             64.31
+Df Model:                           1                                         
+Covariance Type:            nonrobust                                         
+==============================================================================
+                 coef    std err          t      P>|t|      [0.025      0.975]
+------------------------------------------------------------------------------
+const          6.0612      0.290     20.886      0.000       5.456       6.667
+x1             0.0009      0.000      4.233      0.000       0.000       0.001
+==============================================================================
+Omnibus:                        0.021   Durbin-Watson:                   1.872
+Prob(Omnibus):                  0.989   Jarque-Bera (JB):                0.123
+Skew:                          -0.048   Prob(JB):                        0.940
+Kurtosis:                       2.646   Cond. No.                     1.93e+03
+==============================================================================
+
+Notes:
+[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+[2] The condition number is large, 1.93e+03. This might indicate that there are
+strong multicollinearity or other numerical problems.
+
+================================================================================
+Log-Log: log(y) ~ log(Area)
+================================================================================
+                            OLS Regression Results                            
+==============================================================================
+Dep. Variable:                      y   R-squared:                       0.364
+Model:                            OLS   Adj. R-squared:                  0.333
+Method:                 Least Squares   F-statistic:                     11.47
+Date:                Thu, 25 Sep 2025   Prob (F-statistic):            0.00293
+Time:                        06:26:14   Log-Likelihood:                -31.116
+No. Observations:                  22   AIC:                             66.23
+Df Residuals:                      20   BIC:                             68.41
+Df Model:                           1                                         
+Covariance Type:            nonrobust                                         
+==============================================================================
+                 coef    std err          t      P>|t|      [0.025      0.975]
+------------------------------------------------------------------------------
+const          2.6265      1.293      2.031      0.056      -0.071       5.324
+x1             0.6784      0.200      3.386      0.003       0.261       1.096
+==============================================================================
+Omnibus:                        0.637   Durbin-Watson:                   1.640
+Prob(Omnibus):                  0.727   Jarque-Bera (JB):                0.638
+Skew:                          -0.060   Prob(JB):                        0.727
+Kurtosis:                       2.174   Cond. No.                         38.4
+==============================================================================
+
+Notes:
+[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+
+================================================================================
+Quadratic: y ~ Area + Area^2
+================================================================================
+                            OLS Regression Results                            
+==============================================================================
+Dep. Variable:                      y   R-squared:                       0.696
+Model:                            OLS   Adj. R-squared:                  0.664
+Method:                 Least Squares   F-statistic:                     21.75
+Date:                Thu, 25 Sep 2025   Prob (F-statistic):           1.22e-05
+Time:                        06:26:14   Log-Likelihood:                -200.41
+No. Observations:                  22   AIC:                             406.8
+Df Residuals:                      19   BIC:                             410.1
+Df Model:                           2                                         
+Covariance Type:            nonrobust                                         
+==============================================================================
+                 coef    std err          t      P>|t|      [0.025      0.975]
+------------------------------------------------------------------------------
+const        732.8903    972.612      0.754      0.460   -1302.809    2768.590
+x1             0.0240      1.558      0.015      0.988      -3.238       3.286
+x2             0.0009      0.000      2.238      0.037    6.04e-05       0.002
+==============================================================================
+Omnibus:                       29.503   Durbin-Watson:                   2.255
+Prob(Omnibus):                  0.000   Jarque-Bera (JB):               67.153
+Skew:                           2.244   Prob(JB):                     2.62e-15
+Kurtosis:                      10.289   Cond. No.                     7.70e+06
+==============================================================================
+
+Notes:
+[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+[2] The condition number is large, 7.7e+06. This might indicate that there are
+strong multicollinearity or other numerical problems.
+

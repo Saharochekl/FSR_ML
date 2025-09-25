@@ -11,3 +11,5 @@
 *.out
 *.log
 *.aux
+.venv
+*.png

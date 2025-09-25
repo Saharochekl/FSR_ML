@@ -1,0 +1,31 @@
+Chosen model: Log-log: log(time) ~ log(dist) + log(climb)
+
+                            OLS Regression Results                            
+==============================================================================
+Dep. Variable:                      y   R-squared:                       0.812
+Model:                            OLS   Adj. R-squared:                  0.800
+Method:                 Least Squares   F-statistic:                     69.15
+Date:                Thu, 25 Sep 2025   Prob (F-statistic):           2.42e-12
+Time:                        06:12:56   Log-Likelihood:                -7.6567
+No. Observations:                  35   AIC:                             21.31
+Df Residuals:                      32   BIC:                             25.98
+Df Model:                           2                                         
+Covariance Type:            nonrobust                                         
+==============================================================================
+                 coef    std err          t      P>|t|      [0.025      0.975]
+------------------------------------------------------------------------------
+const          0.9192      0.535      1.718      0.096      -0.171       2.009
+log_dist       0.8975      0.128      7.011      0.000       0.637       1.158
+log_climb      0.1710      0.093      1.833      0.076      -0.019       0.361
+==============================================================================
+Omnibus:                       49.850   Durbin-Watson:                   2.554
+Prob(Omnibus):                  0.000   Jarque-Bera (JB):              311.629
+Skew:                           3.006   Prob(JB):                     2.14e-68
+Kurtosis:                      16.325   Cond. No.                         77.1
+==============================================================================
+
+Notes:
+[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+
+Breusch-Pagan p=0.717204
+Anderson-Darling p=1.26084e-12
