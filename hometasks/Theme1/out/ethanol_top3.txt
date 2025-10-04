@@ -6,8 +6,8 @@ Quadratic (full 2nd): y ~ comp + eq + comp^2 + eq^2 + comp:eq
 Dep. Variable:                      y   R-squared:                       0.851
 Model:                            OLS   Adj. R-squared:                  0.842
 Method:                 Least Squares   F-statistic:                     93.61
-Date:                Thu, 25 Sep 2025   Prob (F-statistic):           2.10e-32
-Time:                        08:55:14   Log-Likelihood:                -51.583
+Date:                Thu, 02 Oct 2025   Prob (F-statistic):           2.10e-32
+Time:                        00:04:39   Log-Likelihood:                -51.583
 No. Observations:                  88   AIC:                             115.2
 Df Residuals:                      82   BIC:                             130.0
 Df Model:                           5                                         
@@ -41,8 +41,8 @@ LogY Linear: log(y) ~ comp + eq
 Dep. Variable:                      y   R-squared:                       0.015
 Model:                            OLS   Adj. R-squared:                 -0.008
 Method:                 Least Squares   F-statistic:                    0.6510
-Date:                Thu, 25 Sep 2025   Prob (F-statistic):              0.524
-Time:                        08:55:14   Log-Likelihood:                -88.854
+Date:                Thu, 02 Oct 2025   Prob (F-statistic):              0.524
+Time:                        00:04:39   Log-Likelihood:                -88.854
 No. Observations:                  88   AIC:                             183.7
 Df Residuals:                      85   BIC:                             191.1
 Df Model:                           2                                         
@@ -71,8 +71,8 @@ LogY + Interaction: log(y) ~ comp + eq + comp:eq
 Dep. Variable:                      y   R-squared:                       0.016
 Model:                            OLS   Adj. R-squared:                 -0.019
 Method:                 Least Squares   F-statistic:                    0.4672
-Date:                Thu, 25 Sep 2025   Prob (F-statistic):              0.706
-Time:                        08:55:14   Log-Likelihood:                -88.795
+Date:                Thu, 02 Oct 2025   Prob (F-statistic):              0.706
+Time:                        00:04:39   Log-Likelihood:                -88.795
 No. Observations:                  88   AIC:                             185.6
 Df Residuals:                      84   BIC:                             195.5
 Df Model:                           3                                         

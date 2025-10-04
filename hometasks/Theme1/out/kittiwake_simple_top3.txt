@@ -6,8 +6,8 @@ Log-linear Y: log(y) ~ Area
 Dep. Variable:                      y   R-squared:                       0.473
 Model:                            OLS   Adj. R-squared:                  0.446
 Method:                 Least Squares   F-statistic:                     17.92
-Date:                Thu, 25 Sep 2025   Prob (F-statistic):           0.000408
-Time:                        06:26:14   Log-Likelihood:                -29.065
+Date:                Wed, 01 Oct 2025   Prob (F-statistic):           0.000408
+Time:                        23:59:01   Log-Likelihood:                -29.065
 No. Observations:                  22   AIC:                             62.13
 Df Residuals:                      20   BIC:                             64.31
 Df Model:                           1                                         
@@ -37,8 +37,8 @@ Log-Log: log(y) ~ log(Area)
 Dep. Variable:                      y   R-squared:                       0.364
 Model:                            OLS   Adj. R-squared:                  0.333
 Method:                 Least Squares   F-statistic:                     11.47
-Date:                Thu, 25 Sep 2025   Prob (F-statistic):            0.00293
-Time:                        06:26:14   Log-Likelihood:                -31.116
+Date:                Wed, 01 Oct 2025   Prob (F-statistic):            0.00293
+Time:                        23:59:01   Log-Likelihood:                -31.116
 No. Observations:                  22   AIC:                             66.23
 Df Residuals:                      20   BIC:                             68.41
 Df Model:                           1                                         
@@ -66,8 +66,8 @@ Quadratic: y ~ Area + Area^2
 Dep. Variable:                      y   R-squared:                       0.696
 Model:                            OLS   Adj. R-squared:                  0.664
 Method:                 Least Squares   F-statistic:                     21.75
-Date:                Thu, 25 Sep 2025   Prob (F-statistic):           1.22e-05
-Time:                        06:26:14   Log-Likelihood:                -200.41
+Date:                Wed, 01 Oct 2025   Prob (F-statistic):           1.22e-05
+Time:                        23:59:01   Log-Likelihood:                -200.41
 No. Observations:                  22   AIC:                             406.8
 Df Residuals:                      19   BIC:                             410.1
 Df Model:                           2                                         

@@ -5,8 +5,8 @@ Chosen model: Log-log: log(time) ~ log(dist) + log(climb)
 Dep. Variable:                      y   R-squared:                       0.812
 Model:                            OLS   Adj. R-squared:                  0.800
 Method:                 Least Squares   F-statistic:                     69.15
-Date:                Thu, 25 Sep 2025   Prob (F-statistic):           2.42e-12
-Time:                        06:12:56   Log-Likelihood:                -7.6567
+Date:                Thu, 02 Oct 2025   Prob (F-statistic):           2.42e-12
+Time:                        00:28:57   Log-Likelihood:                -7.6567
 No. Observations:                  35   AIC:                             21.31
 Df Residuals:                      32   BIC:                             25.98
 Df Model:                           2                                         
