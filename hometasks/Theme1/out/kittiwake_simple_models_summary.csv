@@ -1,0 +1,7 @@
+model,n,AIC,BIC,R2(transf.),RESET p (pow=2),RESET p (pow=3),sm_res
+Log-linear Y: log(y) ~ Area,22,62.13062409682468,64.31270900354131,0.47252207985659567,0.8838616532335486,0.7935035337947149,<statsmodels.regression.linear_model.RegressionResultsWrapper object at 0x17dd11a90>
+Log-Log: log(y) ~ log(Area),22,66.23203600241439,68.41412090913103,0.3644220001797588,0.0522964131685187,0.15868302438881346,<statsmodels.regression.linear_model.RegressionResultsWrapper object at 0x17dc4c290>
+Quadratic: y ~ Area + Area^2,22,406.8199940863384,410.09312144641336,0.695965289942271,0.09558856207578414,0.22521979140543683,<statsmodels.regression.linear_model.RegressionResultsWrapper object at 0x17d8fb530>
+Linear: y ~ Area,22,409.96785263691436,412.149937543631,0.6158106833561189,0.03738612068190727,0.035162255779914116,<statsmodels.regression.linear_model.RegressionResultsWrapper object at 0x17da03da0>
+Sqrt X: y ~ sqrt(Area),22,416.3589218134198,418.5410067201364,0.4863004365913788,0.004468099267594477,0.00853352733931523,<statsmodels.regression.linear_model.RegressionResultsWrapper object at 0x17dbdd0a0>
+Semi-log X: y ~ log(Area),22,422.70009191288136,424.882176819598,0.31468842278224474,0.002943867016926425,0.002744124106886968,<statsmodels.regression.linear_model.RegressionResultsWrapper object at 0x17dbdf950>
