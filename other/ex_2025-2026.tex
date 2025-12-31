@@ -1,0 +1,2121 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[T2A]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[russian]{babel}
+\usepackage{geometry}
+\geometry{margin=2.5cm}
+\usepackage{amsmath}
+\usepackage{graphicx, amssymb, hyperref, placeins, cite}
+\usepackage{float}
+\hypersetup{hidelinks}
+\usepackage{indentfirst}
+\usepackage{array}
+
+\begin{document}
+\title{Вопросы для экзамена 2025-2026 по ML}
+\author{}
+\date{\today}
+
+\maketitle
+\tableofcontents
+\newpage
+
+\section{Опишите задачу классификации. Что такое матрица ошибок? Что показывает accuracy? Чем плох этот показатель?}
+
+\textbf{Задача классификации (обучение с учителем):} по обучающей выборке
+$D=\{(\vec x_i, y_i)\}_{i=1}^n$, где $\vec x_i\in\mathbb R^m$ --- вектор признаков, а $y_i$ --- метка класса,
+построить классификатор $g(\vec x)$, который для новых объектов выдаёт предсказание класса.
+
+\begin{itemize}
+    \item \textbf{Бинарная классификация:} $y\in\{0,1\}$ (классы $C_0$ и $C_1$).
+    \item \textbf{Многоклассовая классификация:} $y\in\{1,\dots,K\}$.
+\end{itemize}
+
+Практическая цель ML-формулировки --- \emph{хорошо классифицировать новые данные}, т.е. минимизировать долю ошибок на новых наблюдениях (обобщающая способность), а не «идеально объяснить» обучающую выборку.
+
+\medskip
+\textbf{Матрица ошибок (confusion matrix, матрица неточностей):}
+таблица счётов, где строки соответствуют истинным классам, а столбцы --- предсказанным.
+Элемент $C_{ij}$ показывает число объектов истинного класса $i$, отнесённых моделью к классу $j$.
+
+Для бинарной классификации удобно вводить четыре числа:
+\begin{itemize}
+    \item $TP$ (true positive): $y=1,\; \hat y=1$;
+    \item $FN$ (false negative): $y=1,\; \hat y=0$;
+    \item $TN$ (true negative): $y=0,\; \hat y=0$;
+    \item $FP$ (false positive): $y=0,\; \hat y=1$.
+\end{itemize}
+Тогда матрицу ошибок можно записать как
+\[
+\begin{pmatrix}
+TN & FP\\
+FN & TP
+\end{pmatrix}.
+\]
+
+\medskip
+\textbf{Accuracy (верность классификации):}
+доля верных ответов модели на выборке.
+В бинарном случае
+\[
+\mathrm{Acc} = \frac{TP+TN}{n},\qquad n=TP+TN+FP+FN.
+\]
+В многоклассовом случае
+\[
+\mathrm{Acc} = \frac{\sum_{k=1}^{K} C_{kk}}{\sum_{i=1}^{K}\sum_{j=1}^{K} C_{ij}} = \frac{\mathrm{trace}(C)}{n}.
+\]
+Интерпретация: это эмпирическая вероятность того, что классификатор угадал метку.
+
+\medskip
+\textbf{Чем плох accuracy:}
+если классы несбалансированы ($n_0\neq n_1$), метрика может «врать».
+Например, пусть класс $C_0$ встречается в $95\%$ случаев, а $C_1$ --- в $5\%$.
+«Глупая» модель $\hat y\equiv 0$ имеет
+\(\mathrm{Acc}=0.95\), хотя для класса $C_1$ у неё $TP=0$ (то есть она \emph{никогда} не находит редкий класс).
+Кроме того, accuracy не учитывает разную цену ошибок: в разных задачах критичнее либо пропустить объект класса $C_1$ (ошибка I рода / $FN$), либо сделать ложную тревогу (ошибка II рода / $FP$).
+Поэтому при дисбалансе классов и/или неравной стоимости ошибок обычно переходят к метрикам, зависящим от $TP,FN,FP,TN$ (recall, precision, ROC/PR и т.д.).
+
+\FloatBarrier
+
+\section{Что такое ошибки I и II рода? Что показывает ROC–кривая, как она выглядит, какой числовой показатель качества модели используется?}
+
+\textbf{Ошибки I и II рода (в терминах лекций):}
+пусть в бинарной классификации мы следим за классом $C_1$ (\emph{positive class}), а $C_0$ --- отрицательный.
+Тогда
+\begin{itemize}
+    \item \textbf{ошибка I рода:} модель сказала «нет» (\,$\hat y=0$\,), хотя на самом деле «да» (\,$y=1$\,), т.е. \textbf{false negative} ($FN$);
+    \item \textbf{ошибка II рода:} модель сказала «да» (\,$\hat y=1$\,), хотя на самом деле «нет» (\,$y=0$\,), т.е. \textbf{false positive} ($FP$).
+\end{itemize}
+Важно: если поменять классы местами (перекодировать метки), то ошибка I рода становится ошибкой II рода и наоборот.
+
+\medskip
+\textbf{Вероятности ошибок (rates):}
+обозначим $n_1$ --- число объектов класса $C_1$, $n_0$ --- число объектов класса $C_0$.
+В лекциях вводятся
+\[
+\mathrm{fnr} = \frac{FN}{TP+FN} = \frac{FN}{n_1}\quad (\text{ошибка I рода, false negative rate}),
+\]
+\[
+\mathrm{fpr} = \frac{FP}{TN+FP} = \frac{FP}{n_0}\quad (\text{ошибка II рода, false positive rate}).
+\]
+Отсюда
+\[
+1-\mathrm{fnr} = \frac{TP}{TP+FN}
+\]
+называют \textbf{полнотой} (\emph{recall}, иногда также \emph{sensitivity}).
+
+\medskip
+\textbf{ROC–кривая (Receiver Operating Characteristic):}
+характеризует классификатор «в целом» при изменении порога (threshold) $t$.
+Идея такая: если у модели есть метрика качества «насколько объект похож на $C_1$», то при увеличении/уменьшении порога $t$ меняется, сколько объектов мы относим к $C_1$.
+При этом обычно растут и $TP$, и $FP$ (не ошибается только тот, кто ничего не делает), поэтому одновременно растут
+\(\mathrm{fpr}(t)\) и \(\mathrm{recall}(t)\).
+
+Формально ROC задаётся как параметрическая кривая
+\[
+\bigl(\mathrm{fpr}(t),\, \mathrm{recall}(t)\bigr),\qquad t\in\mathbb R,
+\]
+которая соединяет точки $(0,0)$ и $(1,1)$ на плоскости $(\mathrm{fpr},\mathrm{recall})$.
+
+\begin{itemize}
+    \item Крайность 1: классификатор всегда выдаёт $\hat y\equiv 0$.
+    Тогда $TP=FP=0$, поэтому $(\mathrm{fpr},\mathrm{recall})=(0,0)$.
+    \item Крайность 2: классификатор всегда выдаёт $\hat y\equiv 1$.
+    Тогда $TN=FN=0$, поэтому $(\mathrm{fpr},\mathrm{recall})=(1,1)$.
+\end{itemize}
+Все разумные настройки порога дают точки «между» этими крайностями.
+
+\medskip
+\textbf{Как выглядит ROC–кривая:}
+\begin{itemize}
+    \item \textbf{случайный классификатор} (подбрасываем «монетку» с вероятностью $p$ отнести к $C_1$) даёт
+    \(\mathrm{fpr}(p)=\mathrm{recall}(p)=p\), то есть ROC --- \textbf{диагональ} квадрата;
+    \item «хороший» классификатор стремится давать кривую, которая лежит \textbf{выше диагонали} (больше recall при том же fpr);
+    \item выбор \emph{между алгоритмами/настройками} --- это выбор ROC–кривой, а выбор \emph{порога/threshold} --- выбор конкретной точки на выбранной кривой.
+\end{itemize}
+
+\medskip
+\textbf{Числовой показатель качества:} стандартно используют \textbf{AUC} (area under curve) --- площадь под ROC–кривой.
+Интуитивно: чем больше площадь (чем «выше» кривая над диагональю), тем лучше классификатор «в целом».
+Для ориентира: у диагонали (случайный классификатор) AUC близка к $0.5$, а у почти идеального классификатора --- близка к $1$.
+
+\FloatBarrier
+
+\section{Что такое recall и precision? Как устроена PR–кривая и что она показывается? Что такое F1 и $F_\beta$ –меры, зачем они нужны?}
+
+\textbf{Recall (полнота, sensitivity):}
+доля объектов положительного класса, которые модель нашла:
+\[
+\mathrm{recall} = \frac{TP}{TP+FN}.
+\]
+
+\textbf{Precision (точность/прецизионность):}
+доля правильных среди всех объектов, которые модель объявила положительными:
+\[
+\mathrm{precision} = \frac{TP}{TP+FP}.
+\]
+
+\medskip
+\textbf{PR–кривая (precision–recall curve):}
+как и ROC, строится при изменении порога $t$ у скорингового классификатора.
+Для каждого $t$ считаем точку
+\[
+\bigl(\mathrm{recall}(t),\, \mathrm{precision}(t)\bigr).
+\]
+Она показывает компромисс: обычно при росте recall падает precision (чем больше «ловим» положительных, тем больше среди них ложных тревог).
+В лекциях подчёркивается, что при сильном дисбалансе классов PR–кривая часто информативнее ROC.
+
+\medskip
+\textbf{F1–мера:} гармоническое среднее precision и recall:
+\[
+F_1 = \frac{2\,\mathrm{precision}\cdot\mathrm{recall}}{\mathrm{precision}+\mathrm{recall}}.
+\]
+Она нужна, когда важно одновременно и «не промахиваться» (precision), и «не пропускать» (recall).
+
+\textbf{$F_\beta$–мера:}
+обобщение, которое задаёт, что важнее:
+\[
+F_\beta = \frac{(1+\beta^2)\,\mathrm{precision}\cdot\mathrm{recall}}{\beta^2\,\mathrm{precision}+\mathrm{recall}}.
+\]
+\begin{itemize}
+    \item $\beta>1$ сильнее штрафует за низкий recall (важнее \emph{не пропускать} положительный класс).
+    \item $\beta<1$ сильнее штрафует за низкий precision (важнее \emph{не давать ложных тревог}).
+\end{itemize}
+
+\FloatBarrier
+
+\section{Выведите формулу байесовского классификатора. Докажите, что он имеет наибольшую точность.}
+
+\textbf{Обозначения (как в лекциях):}
+$y\in\{0,1\}$, классы $C_0$ и $C_1$;
+$\pi_k = \mathbb P(y=k)$ --- априорные вероятности классов;
+$f_k(\vec x)=p(\vec x\mid y=k)$ --- условные плотности.
+
+\textbf{Апостериорная вероятность (скор):}
+\[
+\mathbb P(y=1\mid \vec x)=\frac{\pi_1 f_1(\vec x)}{\pi_0 f_0(\vec x)+\pi_1 f_1(\vec x)}\equiv r(\vec x),
+\qquad
+\mathbb P(y=0\mid \vec x)=1-r(\vec x).
+\]
+
+\textbf{Байесовский классификатор (для 0--1 потерь):}
+\[
+\hat y(\vec x)=\arg\max_{k\in\{0,1\}}\mathbb P(y=k\mid \vec x)
+\quad\Longleftrightarrow\quad
+\hat y(\vec x)=\mathbb I\{r(\vec x)>1/2\}.
+\]
+Эквивалентная форма через плотности (без знаменателя):
+\[
+\hat y(\vec x)=1\ \Longleftrightarrow\ \pi_1 f_1(\vec x) > \pi_0 f_0(\vec x).
+\]
+(В многоклассовом случае: $\hat y(\vec x)=\arg\max_{k=1,\dots,K} \pi_k f_k(\vec x)$.)
+
+\medskip
+\textbf{Почему он даёт наибольшую точность (краткое доказательство):}
+рассмотрим 0--1 потери $\ell(\hat y,y)=\mathbb I\{\hat y\neq y\}$.
+Условный риск при фиксированном $\vec x$ для решения $\hat y=k$ равен
+\[
+R(k\mid \vec x)=\mathbb E\bigl[\ell(k,y)\mid \vec x\bigr]=\mathbb P(y\neq k\mid \vec x)=1-\mathbb P(y=k\mid \vec x).
+\]
+Минимизировать $R(k\mid \vec x)$ по $k$ значит \emph{максимизировать} $\mathbb P(y=k\mid \vec x)$.
+Следовательно, байесовское правило минимизирует ожидаемую ошибку
+$\mathbb E\,\mathbb I\{\hat y(\vec x)\neq y\}$, а значит максимизирует accuracy
+(так как $\mathrm{Acc}=1-\text{(доля ошибок)}$).
+
+\FloatBarrier
+
+\section{Опишите наивный байесовский подход. Опишите классификаторы LDA и QDA. Выведите формулы LDA и QDA методом наибольшего правдоподобия.}
+
+\textbf{Общая байесовская схема:}
+при априорах $\pi_k$ и плотностях $f_k(\vec x)=p(\vec x\mid y=k)$
+\[
+\hat y(\vec x)=\arg\max_k\ \pi_k f_k(\vec x).
+\]
+
+\textbf{Наивный Байес:}
+предположение условной независимости признаков при фиксированном классе:
+\[
+\vec x=(x_1,\dots,x_m),\qquad p(\vec x\mid y=k)=\prod_{j=1}^{m} p(x_j\mid y=k).
+\]
+Отсюда правило (в лог-форме):
+\[
+\hat y(\vec x)=\arg\max_k\Bigl(\log\pi_k+\sum_{j=1}^{m}\log p(x_j\mid y=k)\Bigr).
+\]
+
+\textbf{LDA/QDA: гауссовские классы.}
+Предположение:
+\(
+\vec x\mid (y=k) \sim \mathcal N(\vec\mu_k,\Sigma_k)
+\).
+Тогда дискриминант (лог-постериор с точностью до константы)
+\[
+\delta_k(\vec x)=\log\pi_k-\frac12\log|\Sigma_k|-\frac12(\vec x-\vec\mu_k)^\top\Sigma_k^{-1}(\vec x-\vec\mu_k),
+\qquad
+\hat y(\vec x)=\arg\max_k\delta_k(\vec x).
+\]
+
+\textbf{QDA:} ковариации разные ($\Sigma_k$), границы решений квадратичны.
+
+\textbf{LDA:} общая ковариация ($\Sigma_k\equiv\Sigma$), тогда
+\[
+\delta_k(\vec x)=\vec x^\top\Sigma^{-1}\vec\mu_k-\frac12\vec\mu_k^\top\Sigma^{-1}\vec\mu_k+\log\pi_k
+\]
+(линейно по $\vec x$).
+
+\textbf{Оценки МНП (MLE) по выборке $\{(\vec x_i,y_i)\}_{i=1}^n$:}
+$\ n_k=\#\{i:y_i=k\}$.
+\[
+\hat\pi_k=\frac{n_k}{n},\qquad
+\hat{\vec\mu}_k=\frac1{n_k}\sum_{i:y_i=k}\vec x_i.
+\]
+QDA:
+\[
+\hat\Sigma_k=\frac1{n_k}\sum_{i:y_i=k}(\vec x_i-\hat{\vec\mu}_k)(\vec x_i-\hat{\vec\mu}_k)^\top.
+\]
+LDA (объединённая):
+\[
+\hat\Sigma=\frac1n\sum_{k=1}^{K}\sum_{i:y_i=k}(\vec x_i-\hat{\vec\mu}_k)(\vec x_i-\hat{\vec\mu}_k)^\top.
+\]
+
+\FloatBarrier
+
+
+\section{Опишите логистический классификатор. Дайте определение KL–дивергенции. Выведите с помощью нее функцию потерь классификатора.}
+
+\textbf{Логистический классификатор (логистическая регрессия):}
+строим линейную метрику качества 
+\[
+ a(\vec x)=\theta_0+\theta^\top\vec x,
+\]
+и интерпретируем его как вероятность положительного класса через сигмоиду
+\[
+\hat y(\vec x)=\mathbb P(y=1\mid \vec x)=\sigma(a)=\frac{1}{1+e^{-a}}.
+\]
+Классификация по порогу $1/2$:
+\(
+\hat y_{\text{class}}(\vec x)=\mathbb I\{\hat y(\vec x)>1/2\}\iff a(\vec x)>0
+\), граница решений --- гиперплоскость $a(\vec x)=0$.
+
+\medskip
+\textbf{KL–дивергенция (Кульбак–Лейблер):}
+для истинного распределения $P$ и приближения $Q$
+\[
+\mathrm{KL}(P\|Q)=\int p(z)\ln\frac{p(z)}{q(z)}\,dz
+\quad (\text{или }\ \sum_i p_i\ln\tfrac{p_i}{q_i}\ \text{в дискретном случае}).
+\]
+
+\textbf{Вывод функции потерь через KL (как в лекциях):}
+считаем $P$ заданным нашими метками.
+Для каждого объекта $x_i$ введём
+\[
+P_i:\ p(Y=1\mid x_i)=y_i,\ \ p(Y=0\mid x_i)=1-y_i\qquad (y_i\in\{0,1\}).
+\]
+Модельное распределение (классификатор) задаём ответом $\hat y_i=\hat y(x_i)$:
+\[
+Q_i:\ q(Y=1\mid x_i)=\hat y_i,\ \ q(Y=0\mid x_i)=1-\hat y_i.
+\]
+Так как в $\mathrm{KL}(P\|Q)=\int\ln dP\,dP-\int\ln dQ\,dP$ первое слагаемое от $Q$ не зависит,
+минимизируем
+\[
+-\sum_{i=1}^{n}\Bigl(y_i\ln \hat y_i+(1-y_i)\ln(1-\hat y_i)\Bigr).
+\]
+Итого (усреднённая) функция потерь:
+\[
+\ell(\theta)=-\frac1n\sum_{i=1}^{n}\Bigl(y_i\ln \hat y_i(\theta)+(1-y_i)\ln(1-\hat y_i(\theta))\Bigr).
+\]
+Эквивалентная запись при кодировке $y_i\in\{-1,1\}$:
+\[
+\ell(\theta)=\frac1n\sum_{i=1}^{n}\ln\bigl(1+e^{-y_i a_i}\bigr),\qquad a_i=a(x_i).
+\]
+
+\FloatBarrier
+
+\section{Опишите алгоритм градиентного спуска на примере логистического классификатора. Проверьте функцию потерь на выпуклость.}
+
+\textbf{Градиентный спуск (batch GD):}
+для функции потерь $\ell(\theta)$ строим итерации
+\[
+\theta^{(t+1)}=\theta^{(t)}-\eta\,\nabla\ell\bigl(\theta^{(t)}\bigr),\qquad t=0,1,2,\dots
+\]
+где $\eta>0$ --- шаг (learning rate).
+Критерий остановки (как обычно в лекциях):
+малость $\|\nabla\ell(\theta^{(t)})\|$ и/или малость $\|\theta^{(t+1)}-\theta^{(t)}\|$.
+
+\medskip
+\textbf{Пример: логистическая регрессия.}
+Пусть $\tilde x_i=(1,\vec x_i)$ (добавили константу под свободный член),
+$a_i=\theta^\top\tilde x_i$, $p_i=\sigma(a_i)$.
+Функция потерь (кросс-энтропия / отрицательное лог-правдоподобие):
+\[
+\ell(\theta)=-\frac1n\sum_{i=1}^{n}\Bigl(y_i\ln p_i+(1-y_i)\ln(1-p_i)\Bigr).
+\]
+Тогда градиент имеет вид
+\[
+\nabla\ell(\theta)=\frac1n\sum_{i=1}^{n}(p_i-y_i)\,\tilde x_i.
+\]
+Итерация GD:
+\[
+\theta^{(t+1)}=\theta^{(t)}-\eta\,\frac1n\sum_{i=1}^{n}\bigl(p_i^{(t)}-y_i\bigr)\,\tilde x_i,
+\qquad p_i^{(t)}=\sigma\bigl((\theta^{(t)})^\top\tilde x_i\bigr).
+\]
+(Для SGD в лекциях: заменить сумму по всем $i$ на один объект или мини-батч.)
+
+\medskip
+\textbf{Проверка выпуклости:}
+выпишем гессиан.
+Обозначим матрицу признаков $\tilde X\in\mathbb R^{n\times(m+1)}$ (строки $\tilde x_i^\top$),
+и веса $w_i=p_i(1-p_i)\ge 0$, $W=\mathrm{diag}(w_1,\dots,w_n)$.
+Тогда
+\[
+\nabla^2\ell(\theta)=\frac1n\tilde X^\top W\,\tilde X.
+\]
+Для любого вектора $v$ имеем
+\[
+ v^\top\nabla^2\ell(\theta)\,v=\frac1n\sum_{i=1}^{n} w_i\,(\tilde x_i^\top v)^2\ge 0,
+\]
+значит $\nabla^2\ell(\theta)\succeq 0$ и функция $\ell(\theta)$ выпуклая.
+
+\FloatBarrier
+
+\section{Опишите задачу многоклассовой классификации и метод softmax regression. Выведите функцию потерь из метода наибольшего правдоподобия.}
+
+\textbf{Многоклассовая классификация:}
+$y\in\{1,\dots,K\}$; по признакам $\vec x\in\mathbb R^m$ строим модель вероятностей
+$\mathbb P(y=k\mid \vec x)$ и предсказываем класс по правилу
+\[
+\hat y(\vec x)=\arg\max_{k=1,\dots,K}\ \mathbb P(y=k\mid \vec x).
+\]
+
+\medskip
+\textbf{Softmax regression (многоклассовая логистическая регрессия):}
+вводим линейные «логиты»
+\[
+ a_k(\vec x)=b_k+w_k^\top\vec x,\qquad k=1,\dots,K,
+\]
+и задаём вероятности через softmax:
+\[
+ p_k(\vec x)=\mathbb P(y=k\mid \vec x)=\frac{e^{a_k(\vec x)}}{\sum_{j=1}^{K} e^{a_j(\vec x)}}.
+\]
+
+\medskip
+\textbf{Функция потерь из МНП (MLE):}
+используем one-hot кодировку метки
+$y_{ik}=\mathbb I\{y_i=k\}$.
+Тогда правдоподобие
+\[
+L(\Theta)=\prod_{i=1}^{n}\prod_{k=1}^{K} p_k(\vec x_i)^{y_{ik}},
+\]
+лог-правдоподобие
+\[
+\log L(\Theta)=\sum_{i=1}^{n}\sum_{k=1}^{K} y_{ik}\,\log p_k(\vec x_i),
+\]
+и отрицательное среднее лог-правдоподобие (кросс-энтропия):
+\[
+\ell(\Theta)=-\frac1n\sum_{i=1}^{n}\sum_{k=1}^{K} y_{ik}\,\log p_k(\vec x_i).
+\]
+Для одного объекта с истинным классом $y_i$ это просто
+\(
+\ell_i(\Theta)=-\log p_{y_i}(\vec x_i)
+\).
+
+\FloatBarrier
+
+\section{Поставьте задачу кластеризации, приведите примеры разных метрик. Дайте определения метрик качества: внутри- и межкластерное расстояние, WSS, BSS, Silhouette.}
+
+\textbf{Задача кластеризации:}
+по выборке $X=\{\vec x_i\}_{i=1}^{n}\subset\mathbb R^m$ (меток нет) разбить объекты на $K$ кластеров
+$C_1,\dots,C_K$ так, чтобы внутри кластера объекты были «похожи», а между кластерами --- «непохожи».
+Обычно это формализуют через минимизацию внутрикластерного разброса (например, суммы квадратов расстояний до центра кластера).
+
+\medskip
+\textbf{Примеры метрик/мер близости $d(\cdot,\cdot)$:}
+\begin{itemize}
+    \item евклидова: $\|\vec x-\vec z\|_2$;
+    \item манхэттенская: $\|\vec x-\vec z\|_1$;
+    \item Минковского: $\|\vec x-\vec z\|_p$;
+    \item Чебышёва: $\|\vec x-\vec z\|_\infty$;
+    \item косинусная «дистанция»: $1-\frac{\langle x,z\rangle}{\|x\|\,\|z\|}$;
+    \item Махаланобиса: $\sqrt{(x-z)^\top S^{-1}(x-z)}$.
+\end{itemize}
+
+\medskip
+\textbf{Внутрикластерное расстояние (within):}
+характерный «разброс» внутри кластера.
+В лекциях часто берут через центр (прототип) $\vec\mu_k$:
+\[
+D_{\text{within}}(C_k)=\sum_{i\in C_k} d(\vec x_i,\vec\mu_k)
+\quad\text{или}\quad
+\sum_{i\in C_k}\|\vec x_i-\vec\mu_k\|^2.
+\]
+
+\textbf{Межкластерное расстояние (between):}
+мера «разделённости» кластеров, например
+\[
+D_{\text{between}}(C_k,C_\ell)=d(\vec\mu_k,\vec\mu_\ell)
+\]
+(или в иерархической кластеризации: $\min/\max/\text{avg}$ попарных расстояний между точками кластеров).
+
+\medskip
+\textbf{WSS (within sum of squares):}
+при евклидовой метрике и центрах $\vec\mu_k$ (обычно средних) определяется как
+\[
+\mathrm{WSS}=\sum_{k=1}^{K}\sum_{i\in C_k}\|\vec x_i-\vec\mu_k\|^2.
+\]
+
+\textbf{BSS (between sum of squares):}
+пусть $\bar{\vec x}=\frac1n\sum_{i=1}^{n}\vec x_i$ --- общий центр, $n_k=|C_k|$.
+Тогда
+\[
+\mathrm{BSS}=\sum_{k=1}^{K} n_k\,\|\vec\mu_k-\bar{\vec x}\|^2.
+\]
+(В классической евклидовой постановке: $\mathrm{TSS}=\mathrm{WSS}+\mathrm{BSS}$.)
+
+\medskip
+\textbf{Silhouette (силуэт):}
+для объекта $i$:
+$a(i)$ --- средняя дистанция до точек своего кластера,
+$b(i)$ --- минимальная по другим кластерам средняя дистанция.
+Тогда
+\[
+ s(i)=\frac{b(i)-a(i)}{\max\{a(i),b(i)\}}\in[-1,1].
+\]
+Суммарный индекс --- среднее $\frac1n\sum_i s(i)$ (больше --- лучше).
+
+\FloatBarrier
+
+\section{Опишите методы k–means и k–medoids. Приведите алгоритмы решения Lloyd и Elkan. Оцените их скорость.}
+
+\textbf{$k$--means (евклидовая постановка):}
+дано $K$. Ищем разбиение $\{C_k\}_{k=1}^{K}$ и центры $\{\vec\mu_k\}$, минимизируя
+\[
+\mathrm{WSS}(C,\mu)=\sum_{k=1}^{K}\sum_{i\in C_k}\|\vec x_i-\vec\mu_k\|^2.
+\]
+
+\textbf{Алгоритм Lloyd (стандартный $k$--means):}
+повторять до сходимости:
+\begin{enumerate}
+    \item \emph{Assignment:} $C_k:=\{i:\ k=\arg\min_j\|\vec x_i-\vec\mu_j\|^2\}$.
+    \item \emph{Update:} $\vec\mu_k:=\frac1{|C_k|}\sum_{i\in C_k}\vec x_i$.
+\end{enumerate}
+Каждая итерация не увеличивает WSS, сходимость к локальному минимуму.
+
+\textbf{Скорость Lloyd:}
+на итерации считаем расстояния до всех центров: $O(nKm)$ (в лекциях обычно $d$ вместо $m$).
+Итого за $T$ итераций: $O(T\,nK m)$.
+
+\medskip
+\textbf{Elkan (ускорение $k$--means):}
+использует неравенство треугольника и хранит верхнюю границу $u_i$ на расстояние до текущего центра
+и нижние границы $l_{ij}$ до остальных центров.
+Если для некоторого $j$ выполнено $u_i\le l_{ij}$ (или эквивалентные условия через межцентровые расстояния),
+то расстояние $\|x_i-\mu_j\|$ можно \emph{не считать}.
+
+\textbf{Скорость Elkan:}
+в худшем случае асимптотика та же $O(T\,nK m)$, но на реальных данных обычно существенно меньше вычислений расстояний.
+
+\medskip
+\textbf{$k$--medoids:}
+аналог $k$--means для произвольной метрики $d$.
+Вместо центров берём \emph{медоиды} $m_k\in\{\vec x_i\}$ (обязаны быть точками выборки) и минимизируем
+\[
+\sum_{k=1}^{K}\sum_{i\in C_k} d(\vec x_i, m_k).
+\]
+Шаги похожи:
+\begin{itemize}
+    \item \emph{Assignment:} отнести $x_i$ к ближайшему медоиду.
+    \item \emph{Update:} в каждом кластере выбрать медоид $m_k$ как точку, минимизирующую сумму дистанций до остальных точек кластера.
+\end{itemize}
+По лекциям: $k$--medoids устойчивее к выбросам, но обновление дороже (обычно требуется перебор кандидатов внутри кластера).
+
+\FloatBarrier
+
+\section{Выведите EM–algorithm кластеризации для смеси нормальных распределений.}
+
+\textbf{Модель GMM (смесь нормальных):}
+вводим скрытую метку кластера $z_i\in\{1,\dots,K\}$ и параметры
+$\Theta=\{\pi_k,\vec\mu_k,\Sigma_k\}_{k=1}^{K}$,
+где $\pi_k\ge 0$, $\sum_k\pi_k=1$.
+Предположение:
+\[
+\mathbb P(z_i=k)=\pi_k,\qquad \vec x_i\mid (z_i=k)\sim\mathcal N(\vec\mu_k,\Sigma_k).
+\]
+Маргинальная плотность:
+\[
+p(\vec x_i\mid\Theta)=\sum_{k=1}^{K}\pi_k\,\mathcal N(\vec x_i\mid\vec\mu_k,\Sigma_k),
+\qquad
+\ell(\Theta)=\sum_{i=1}^{n}\log p(\vec x_i\mid\Theta).
+\]
+
+\medskip
+\textbf{EM–алгоритм:}
+итеративно максимизируем лог-правдоподобие, чередуя:
+
+\textbf{E-step (responsibilities):}
+\[
+\gamma_{ik}:=\mathbb P(z_i=k\mid \vec x_i,\Theta^{(t)})
+=\frac{\pi_k^{(t)}\,\mathcal N(\vec x_i\mid\vec\mu_k^{(t)},\Sigma_k^{(t)})}{\sum_{j=1}^{K}\pi_j^{(t)}\,\mathcal N(\vec x_i\mid\vec\mu_j^{(t)},\Sigma_j^{(t)})}.
+\]
+Обозначим $N_k:=\sum_{i=1}^{n}\gamma_{ik}$.
+
+\textbf{M-step (обновление параметров):}
+\[
+\pi_k^{(t+1)}=\frac{N_k}{n},
+\qquad
+\vec\mu_k^{(t+1)}=\frac{1}{N_k}\sum_{i=1}^{n}\gamma_{ik}\,\vec x_i,
+\]
+\[
+\Sigma_k^{(t+1)}=\frac{1}{N_k}\sum_{i=1}^{n}\gamma_{ik}(\vec x_i-\vec\mu_k^{(t+1)})(\vec x_i-\vec\mu_k^{(t+1)})^\top.
+\]
+
+\medskip
+\textbf{Свойство (по лекциям):}
+на каждой итерации EM не уменьшает $\ell(\Theta)$ и сходится к стационарной точке (обычно локальному максимуму).
+
+\FloatBarrier
+
+\section{Опишите иерархические методы: ближнего соседа, дальнего соседа, средней связи, центроидов, Уорда. Выпишите формулу Ланса–Вильямса.}
+
+\textbf{Иерархическая (агломеративная) кластеризация:}
+стартуем с $n$ кластеров-одиночек; на каждом шаге объединяем два «ближайших» кластера по правилу linkage,
+обновляем расстояния до нового кластера и продолжаем до одного кластера.
+Результат визуализируется \emph{дендрограммой}; число кластеров выбирают «разрезом» дендрограммы.
+
+\medskip
+Пусть $d(A,B)$ --- расстояние между кластерами $A$ и $B$ (определяется правилом связи).
+Основные варианты (как в лекциях):
+\begin{itemize}
+    \item \textbf{Ближний сосед (single linkage):}
+    $d(A,B)=\min\limits_{x\in A,\,z\in B} d(x,z)$.
+    \item \textbf{Дальний сосед (complete linkage):}
+    $d(A,B)=\max\limits_{x\in A,\,z\in B} d(x,z)$.
+    \item \textbf{Средняя связь (average linkage):}
+    $d(A,B)=\frac{1}{|A||B|}\sum\limits_{x\in A}\sum\limits_{z\in B} d(x,z)$.
+    \item \textbf{Центроиды (centroid linkage):}
+    $d(A,B)=\|\mu_A-\mu_B\|$ (обычно евклидова), где $\mu_A$ --- центр (среднее) кластера.
+    \item \textbf{Уорд (Ward):}
+    объединяем пару, дающую минимальный прирост внутрикластерной суммы квадратов (WSS);
+    эквивалентно используют специальную «дистанцию Уорда».
+\end{itemize}
+
+\medskip
+\textbf{Формула Ланса–Вильямса:}
+пусть на шаге объединили кластеры $A$ и $B$ в $C=A\cup B$.
+Тогда расстояние до любого другого кластера $S$ обновляется по схеме
+\[
+ d(C,S)=\alpha_A\,d(A,S)+\alpha_B\,d(B,S)+\beta\,d(A,B)+\gamma\,\bigl|d(A,S)-d(B,S)\bigr|.
+\]
+Коэффициенты зависят от linkage.
+В обозначениях $n_A=|A|$, $n_B=|B|$, $n_C=n_A+n_B$:
+\begin{itemize}
+    \item \textbf{Single:} $\alpha_A=\alpha_B=\tfrac12$, $\beta=0$, $\gamma=-\tfrac12$.
+    \item \textbf{Complete:} $\alpha_A=\alpha_B=\tfrac12$, $\beta=0$, $\gamma=+\tfrac12$.
+    \item \textbf{Average (UPGMA):} $\alpha_A=\tfrac{n_A}{n_C}$, $\alpha_B=\tfrac{n_B}{n_C}$, $\beta=0$, $\gamma=0$.
+    \item \textbf{Centroid:} $\alpha_A=\tfrac{n_A}{n_C}$, $\alpha_B=\tfrac{n_B}{n_C}$, $\beta=-\tfrac{n_A n_B}{n_C^2}$, $\gamma=0$.
+    \item \textbf{Ward:} $\alpha_A=\tfrac{n_A+n_S}{n_C+n_S}$, $\alpha_B=\tfrac{n_B+n_S}{n_C+n_S}$,
+    $\beta=-\tfrac{n_S}{n_C+n_S}$, $\gamma=0$.
+\end{itemize}
+
+\FloatBarrier
+
+\section{Опишите алгоритм DBScan. Опишите алгоритм OPTICS.}
+
+\textbf{DBSCAN (Density-Based Spatial Clustering of Applications with Noise):}
+задаём два параметра: радиус $\varepsilon$ и $\mathrm{MinPts}$.
+Определим $\varepsilon$-окрестность точки
+\[
+N_{\varepsilon}(x)=\{z:\ d(x,z)\le \varepsilon\}.
+\]
+\begin{itemize}
+    \item \textbf{Core point:} $|N_{\varepsilon}(x)|\ge \mathrm{MinPts}$.
+    \item \textbf{Border point:} не core, но лежит в $\varepsilon$-окрестности некоторой core-точки.
+    \item \textbf{Noise (выброс):} не core и не border.
+\end{itemize}
+\textbf{Идея:} кластер --- это связная компонента по отношению «достижимости по плотности».
+
+\textbf{Алгоритм (как в лекциях):}
+\begin{enumerate}
+    \item Все точки пометить как непосещённые.
+    \item Для каждой непосещённой точки $x$:
+    \begin{enumerate}
+        \item пометить $x$ как посещённую, посчитать $N_{\varepsilon}(x)$;
+        \item если $|N_{\varepsilon}(x)|<\mathrm{MinPts}$, пометить $x$ как noise (временно);
+        \item иначе создать новый кластер и \emph{расширять} его: добавлять соседей, и для каждой найденной core-точки добавлять её соседей (BFS/очередь).
+    \end{enumerate}
+\end{enumerate}
+Плюсы (по лекциям): находит кластеры произвольной формы и автоматически выделяет шум.
+
+\medskip
+\textbf{OPTICS (Ordering Points To Identify the Clustering Structure):}
+обобщение DBSCAN: строит \emph{упорядочивание} точек и «профиль плотности», позволяя извлекать кластеры при разных $\varepsilon$.
+Параметры: $\mathrm{MinPts}$ и $\varepsilon_{\max}$ (верхняя граница радиуса поиска).
+
+Для точки $x$:
+\begin{itemize}
+    \item \textbf{core-distance:}
+    \(
+    \mathrm{core\_dist}(x)
+    \) --- расстояние до $\mathrm{MinPts}$-го соседа (если core; иначе $\infty$).
+    \item \textbf{reachability-distance (из $x$ в $z$):}
+    \[
+    \mathrm{reach\_dist}(x,z)=\max\{\mathrm{core\_dist}(x),\ d(x,z)\}.
+    \]
+\end{itemize}
+\textbf{Алгоритм:}
+обход точек как в DBSCAN, но при расширении ведём приоритетную очередь по минимальной достижимости:
+для соседей $z$ обновляем их текущую $\mathrm{reach\_dist}$ и извлекаем следующую точку с минимальным значением.
+Выход: порядок точек + значения reachability (\emph{reachability plot}); кластеры читаются как «впадины» на графике.
+
+\FloatBarrier
+
+\section{Сформулируйте алгоритм спектральной кластеризации. Выведите его на примере двух классов.}
+
+\textbf{Идея спектральной кластеризации:}
+переводим данные в граф: вершины --- объекты, ребро отражает похожесть.
+Строим матрицу весов $W=(w_{ij})$ (например, по $k$NN или гауссовому ядру)
+и степени вершин $d_i=\sum_j w_{ij}$, $D=\mathrm{diag}(d_1,\dots,d_n)$.
+
+\medskip
+\textbf{Лапласиан графа:}
+\[
+L=D-W\quad (\text{ненормированный}),
+\qquad
+L_{\mathrm{sym}}=I-D^{-1/2}WD^{-1/2}\quad (\text{симметрично-нормированный}).
+\]
+
+\medskip
+\textbf{Алгоритм (Ng--Jordan--Weiss / нормированный вариант, как в лекциях):}
+\begin{enumerate}
+    \item Построить $W$, затем $D$ и $L_{\mathrm{sym}}$.
+    \item Найти $K$ собственных векторов $u_1,\dots,u_K$ матрицы $L_{\mathrm{sym}}$, соответствующих наименьшим собственным значениям.
+    \item Собрать матрицу $U\in\mathbb R^{n\times K}$ из строк $U_{i\cdot}=(u_1(i),\dots,u_K(i))$.
+    \item Нормировать строки: $\,y_i=\frac{U_{i\cdot}}{\|U_{i\cdot}\|}\,$.
+    \item Запустить $k$--means по точкам $\{y_i\}_{i=1}^{n}$ и получить кластеры в исходных данных.
+\end{enumerate}
+
+\medskip
+\textbf{Вывод для двух классов ($K=2$):}
+в нормированной постановке минимизация разреза (Ncut) после релаксации сводится к задаче на собственные векторы лапласиана.
+Для $K=2$ берём второй по величине «малости» собственный вектор (\emph{вектор Фидлера}) $u_2$ и делим вершины по его знаку:
+\[
+C_1=\{i:\ u_2(i)\ge 0\},\qquad C_2=\{i:\ u_2(i)<0\}
+\]
+(или по порогу, если в лекциях используется не нулевой threshold).
+
+\FloatBarrier
+
+\section{Опишите алгоритм понижения размерности. Выведите формулу для PCA.}
+
+\textbf{Понижение размерности:}
+по данным $\vec x\in\mathbb R^m$ построить отображение $\Phi:\mathbb R^m\to\mathbb R^r$ (обычно $r\ll m$),
+сохраняющее «важную» структуру данных (вариативность/расстояния/кластеры) и уменьшающее размерность.
+
+\medskip
+\textbf{PCA (метод главных компонент):}
+ищем $r$-мерное линейное подпространство, на которое проекция данных имеет максимальную дисперсию
+(эквивалентно --- минимизирует среднеквадратичную ошибку восстановления).
+
+\medskip
+\textbf{Вывод (как в лекциях):}
+центруем данные: $\bar{\vec x}=\frac1n\sum_{i=1}^n\vec x_i$, $\tilde x_i=\vec x_i-\bar{\vec x}$.
+Соберём матрицу $\tilde X\in\mathbb R^{n\times m}$ из строк $\tilde x_i^\top$.
+Ковариационная матрица (с точностью до константы):
+\[
+S=\frac1n\tilde X^\top\tilde X.
+\]
+Ищем направления $v$ единичной длины, максимизирующие дисперсию проекций:
+\[
+\max_{\|v\|=1}\ \mathrm{Var}(\tilde Xv)=\max_{\|v\|=1} v^\top S v.
+\]
+По методу множителей Лагранжа получаем
+\(
+Sv=\lambda v
+\), т.е. $v$ --- собственный вектор $S$.
+
+\medskip
+\textbf{Формула PCA:}
+пусть $\lambda_1\ge\cdots\ge\lambda_m$ --- собственные значения $S$,
+$V_r=[v_1,\dots,v_r]$ --- матрица из $r$ собственных векторов, соответствующих наибольшим $\lambda$.
+Тогда проекция (главные компоненты)
+\[
+Z=\tilde X V_r\in\mathbb R^{n\times r},
+\]
+а восстановление из $r$ компонент:
+\[
+\hat X=ZV_r^\top+\mathbf 1\,\bar{\vec x}^\top.
+\]
+(Эквивалентно через SVD: $\tilde X=U\Sigma V^\top$, берём первые $r$ столбцов $V$.)
+
+\FloatBarrier
+
+\section{Выведите формулу для вероятностного PCA. Как выбирать число измерений проекции?}
+
+\textbf{Вероятностный PCA (PPCA):}
+вводим скрытую переменную $z\in\mathbb R^r$ и линейную генеративную модель
+\[
+\vec x = W\,\vec z + \vec\mu + \vec\varepsilon,
+\qquad
+\vec z\sim\mathcal N(0,I_r),
+\qquad
+\vec\varepsilon\sim\mathcal N(0,\sigma^2 I_m).
+\]
+Тогда маргинальное распределение наблюдений нормальное:
+\[
+\vec x\sim\mathcal N(\vec\mu,\ C),
+\qquad
+C=WW^\top+\sigma^2 I_m.
+\]
+
+\medskip
+\textbf{Оценки МНП (MLE) (как в лекциях):}
+пусть $S$ --- ковариация центрированных данных,
+$S=U\Lambda U^\top$, $\Lambda=\mathrm{diag}(\lambda_1\ge\dots\ge\lambda_m)$.
+Тогда
+\[
+\hat\sigma^2=\frac{1}{m-r}\sum_{j=r+1}^{m}\lambda_j,
+\]
+а матрица нагрузок (с точностью до вращения $R\in\mathbb R^{r\times r}$, $R^\top R=I$)
+\[
+\hat W = U_r\,(\Lambda_r-\hat\sigma^2 I_r)^{1/2} R,
+\]
+где $U_r$ --- первые $r$ собственных векторов, $\Lambda_r=\mathrm{diag}(\lambda_1,\dots,\lambda_r)$.
+
+\medskip
+\textbf{Проекция (постериорное среднее):}
+для центрированного $\tilde x=\vec x-\vec\mu$
+\[
+\mathbb E[\vec z\mid \vec x]=M^{-1}\hat W^\top\tilde x,
+\qquad
+M=\hat W^\top\hat W+\hat\sigma^2 I_r.
+\]
+
+\medskip
+\textbf{Как выбирать $r$ (размерность проекции):}
+\begin{itemize}
+    \item по доле объяснённой дисперсии (как в PCA):
+    $\frac{\sum_{j=1}^{r}\lambda_j}{\sum_{j=1}^{m}\lambda_j}\ge \tau$ (например, $\tau=0.9$);
+    \item по «локтю» (scree plot) по спектру $\lambda_j$;
+    \item по качеству восстановления / CV (ошибка реконструкции vs $r$);
+    \item для PPCA можно также сравнивать модели по лог-правдоподобию с штрафом за сложность (AIC/BIC).
+\end{itemize}
+
+\FloatBarrier
+
+\section{Опишите нелинейный алгоритм PCA. Приведите примеры разных ядер.}
+
+\textbf{Нелинейный PCA = Kernel PCA:}
+заменяем явное отображение $\phi:\mathbb R^m\to\mathcal H$ (в большое/бесконечное пространство признаков)
+на \emph{ядро} $k(x,z)=\langle \phi(x),\phi(z)\rangle_{\mathcal H}$.
+Далее делаем обычный PCA, но в пространстве $\mathcal H$.
+
+\medskip
+\textbf{Алгоритм Kernel PCA (по лекциям):}
+\begin{enumerate}
+    \item По данным $x_1,\dots,x_n$ построить матрицу Грама $K\in\mathbb R^{n\times n}$:
+    $K_{ij}=k(x_i,x_j)$.
+    \item Отцентрировать в $\mathcal H$ (центрирование ядра):
+    \[
+    K_c = K-\mathbf 1 K- K\mathbf 1+\mathbf 1 K\mathbf 1,
+    \qquad \mathbf 1:=\frac1n\mathbf e\mathbf e^\top.
+    \]
+    \item Решить спектральную задачу
+    \[
+    K_c\alpha = n\lambda\,\alpha,
+    \]
+    взять $r$ наибольших $\lambda$ и соответствующие векторы $\alpha^{(1)},\dots,\alpha^{(r)}$.
+    \item Нормировка (как обычно):
+    $\alpha^{(k)}\leftarrow \alpha^{(k)}/\sqrt{n\lambda_k}$.
+    \item Координаты (проекции) обучающей точки $x_i$ на $k$-ю компоненту:
+    \(
+    z_{ik}=\alpha^{(k)}_i\,n\lambda_k
+    \)
+    (эквивалентно: $z^{(k)}=K_c\alpha^{(k)}$).
+\end{enumerate}
+
+\medskip
+\textbf{Проекция нового объекта $x$:}
+считаем вектор ядровых значений $k_x=(k(x_1,x),\dots,k(x_n,x))^\top$,
+центрируем его так же, как обучающее $K$ (через средние по строкам/столбцам),
+и берём
+\[
+ z_k(x)=\sum_{i=1}^{n}\alpha^{(k)}_i\,k_c(x_i,x).
+\]
+
+\medskip
+\textbf{Примеры ядер:}
+\begin{itemize}
+    \item линейное: $k(x,z)=x^\top z$ (даёт обычный PCA);
+    \item полиномиальное: $k(x,z)=(x^\top z+c)^p$;
+    \item гауссово (RBF): $k(x,z)=\exp\bigl(-\|x-z\|^2/(2\sigma^2)\bigr)$;
+    \item сигмоидальное: $k(x,z)=\tanh(\kappa x^\top z+\theta)$;
+    \item лапласовское: $k(x,z)=\exp(-\|x-z\|_1/\sigma)$.
+\end{itemize}
+
+\FloatBarrier
+
+\section{Дайте постановку метода SVC с мягким и жестким зазором. Сведите обе задачи к задачам условной оптимизации.}
+
+\textbf{SVC (SVM) для бинарной классификации:}
+пусть $y_i\in\{-1,+1\}$, $f(x)=w^\top x+b$.
+Классификатор: $\hat y(x)=\mathrm{sign}(f(x))$.
+
+\medskip
+\textbf{Жёсткий зазор (hard margin):}
+требуем линейную разделимость и максимизируем зазор $2/\|w\|$.
+Эквивалентная \emph{задача условной оптимизации} (primal):
+\[
+\min_{w,b}\ \frac12\|w\|^2
+\quad\text{s.t.}\quad
+y_i\,(w^\top x_i+b)\ge 1,\ \ i=1,\dots,n.
+\]
+
+\medskip
+\textbf{Мягкий зазор (soft margin):}
+вводим послабления $\xi_i\ge 0$ (нарушение ограничений) и штраф $C>0$.
+\emph{Условная оптимизация}:
+\[
+\min_{w,b,\xi}\ \frac12\|w\|^2 + C\sum_{i=1}^{n}\xi_i
+\]
+\[
+\text{s.t.}\quad y_i\,(w^\top x_i+b)\ge 1-\xi_i,\ \ \xi_i\ge 0,\ \ i=1,\dots,n.
+\]
+
+\medskip
+\textbf{Эквивалентная безусловная форма (как в лекциях через hinge-loss):}
+из ограничений следует $\xi_i=\max\{0,\ 1-y_i f(x_i)\}$,
+поэтому
+\[
+\min_{w,b}\ \frac12\|w\|^2 + C\sum_{i=1}^{n}\max\bigl(0,\ 1-y_i(w^\top x_i+b)\bigr).
+\]
+
+\FloatBarrier
+
+\section{Сформулируйте теорему Куна–Таккера. Сведите задачу SVC с жестким зазором к двойственной задаче.}
+
+\textbf{Теорема Куна--Таккера (KKT) (в лекционном виде):}
+рассмотрим задачу
+\[
+\min_x\ f(x)\quad \text{s.t.}\quad g_i(x)\le 0\ (i=1..m),\ \ h_j(x)=0\ (j=1..p).
+\]
+Лагранжиан: $\mathcal L(x,\lambda,\nu)=f(x)+\sum_{i=1}^{m}\lambda_i g_i(x)+\sum_{j=1}^{p}\nu_j h_j(x)$.
+Если $f$ и $g_i$ выпуклы, $h_j$ аффинны и выполнено условие Слейтера, то $x^*$ оптимально \emph{тогда и только тогда}, когда существуют множители
+$\lambda^*\ge 0$, $\nu^*$ такие, что выполнены условия KKT:
+\begin{itemize}
+    \item \textbf{(primal feasible)} $g_i(x^*)\le 0$, $h_j(x^*)=0$;
+    \item \textbf{(dual feasible)} $\lambda_i^*\ge 0$;
+    \item \textbf{(stationarity)} $\nabla_x\mathcal L(x^*,\lambda^*,\nu^*)=0$;
+    \item \textbf{(complementary slackness)} $\lambda_i^*\,g_i(x^*)=0$ для всех $i$.
+\end{itemize}
+
+\medskip
+\textbf{Двойственная задача для hard-margin SVC:}
+primal (из предыдущего пункта)
+\[
+\min_{w,b}\ \frac12\|w\|^2
+\quad\text{s.t.}\quad
+1-y_i(w^\top x_i+b)\le 0,\ \ i=1,\dots,n.
+\]
+Лагранжиан при множителях $\alpha_i\ge 0$:
+\[
+\mathcal L(w,b,\alpha)=\frac12\|w\|^2+\sum_{i=1}^{n}\alpha_i\bigl(1-y_i(w^\top x_i+b)\bigr).
+\]
+Условия стационарности:
+\[
+\frac{\partial\mathcal L}{\partial w}=0\Rightarrow w=\sum_{i=1}^{n}\alpha_i y_i x_i,
+\qquad
+\frac{\partial\mathcal L}{\partial b}=0\Rightarrow \sum_{i=1}^{n}\alpha_i y_i=0.
+\]
+Подставляя $w$ в $\mathcal L$, получаем двойственную задачу:
+\[
+\max_{\alpha}\ \sum_{i=1}^{n}\alpha_i-\frac12\sum_{i=1}^{n}\sum_{j=1}^{n}\alpha_i\alpha_j y_i y_j\,\langle x_i,x_j\rangle
+\]
+\[
+\text{s.t.}\quad \alpha_i\ge 0,\ \sum_{i=1}^{n}\alpha_i y_i=0.
+\]
+Комплементарная нежёсткость:
+\(
+\alpha_i\,(y_i(w^\top x_i+b)-1)=0
+\), поэтому $\alpha_i>0$ только у \emph{опорных векторов}.
+Классификатор:
+\(
+ f(x)=\sum_i\alpha_i y_i\langle x_i,x\rangle+b
+\).
+
+\FloatBarrier
+
+\section{Опишите и выведите нелинейный метод SVC для задачи с жестким зазором.}
+
+\textbf{Нелинейный SVC (hard margin) = ядерный SVM:}
+вместо линейного разделения в $\mathbb R^m$ переходим к отображению
+$\phi:\mathbb R^m\to\mathcal H$ в (возможно бесконечномерное) пространство признаков.
+Решение ищем гиперплоскостью в $\mathcal H$:
+\(
+ f(x)=\langle w,\phi(x)\rangle_{\mathcal H}+b
+\),
+\(
+\hat y(x)=\mathrm{sign}(f(x)).
+\)
+
+\medskip
+\textbf{Primal (условная оптимизация в $\mathcal H$):}
+\[
+\min_{w,b}\ \frac12\|w\|_{\mathcal H}^2
+\quad\text{s.t.}\quad
+ y_i\bigl(\langle w,\phi(x_i)\rangle_{\mathcal H}+b\bigr)\ge 1,\ \ i=1,\dots,n.
+\]
+
+\medskip
+\textbf{Лагранжиан:}
+при множителях $\alpha_i\ge 0$
+\[
+\mathcal L(w,b,\alpha)=\frac12\|w\|_{\mathcal H}^2+\sum_{i=1}^{n}\alpha_i\Bigl(1-y_i\bigl(\langle w,\phi(x_i)\rangle_{\mathcal H}+b\bigr)\Bigr).
+\]
+Условия стационарности:
+\[
+\frac{\partial\mathcal L}{\partial w}=0\Rightarrow
+w=\sum_{i=1}^{n}\alpha_i y_i\,\phi(x_i),
+\qquad
+\frac{\partial\mathcal L}{\partial b}=0\Rightarrow
+\sum_{i=1}^{n}\alpha_i y_i=0.
+\]
+
+\medskip
+\textbf{Двойственная задача (kernel trick):}
+вводим ядро $k(x,z)=\langle\phi(x),\phi(z)\rangle_{\mathcal H}$.
+Подставляя $w$ в лагранжиан, получаем
+\[
+\max_{\alpha}\ \sum_{i=1}^{n}\alpha_i-\frac12\sum_{i=1}^{n}\sum_{j=1}^{n}\alpha_i\alpha_j y_i y_j\,k(x_i,x_j)
+\]
+\[
+\text{s.t.}\quad \alpha_i\ge 0,\ \sum_{i=1}^{n}\alpha_i y_i=0.
+\]
+
+\medskip
+\textbf{Решающее правило:}
+\[
+ f(x)=\sum_{i=1}^{n}\alpha_i y_i\,k(x_i,x)+b.
+\]
+По KKT: $\alpha_i>0$ только у \emph{опорных векторов}.
+
+\FloatBarrier
+
+\section{Сформулируйте теорему Мерсера. Приведите примеры ядер для нелинейного SVC.}
+
+\textbf{Теорема Мерсера (в «прикладной» формулировке из лекций):}
+ядро $k(x,z)$ допустимо для kernel-методов (т.е. существует отображение $\phi$ такое, что
+$k(x,z)=\langle\phi(x),\phi(z)\rangle$) тогда и только тогда, когда оно \emph{симметрично}
+$k(x,z)=k(z,x)$ и \emph{положительно полуопределено}:
+для любых точек $x_1,\dots,x_n$ матрица Грама
+\[
+K_{ij}=k(x_i,x_j)
+\]
+удовлетворяет $K\succeq 0$ (то есть $\sum_{i,j} c_i c_j k(x_i,x_j)\ge 0$ для любых $c\in\mathbb R^n$).
+
+Эквивалентная «интегральная» версия: если $k$ непрерывно и симметрично на компактном множестве,
+то существует разложение
+\[
+ k(x,z)=\sum_{t=1}^{\infty} \lambda_t\,\psi_t(x)\,\psi_t(z),\qquad \lambda_t\ge 0,
+\]
+где $\{\psi_t\}$ --- ортонормированные собственные функции соответствующего интегрального оператора.
+
+\medskip
+\textbf{Примеры ядер для нелинейного SVC:}
+\begin{itemize}
+    \item \textbf{линейное:} $k(x,z)=x^\top z$;
+    \item \textbf{полиномиальное:} $k(x,z)=(x^\top z+c)^p$, $p\in\mathbb N$, $c\ge 0$;
+    \item \textbf{гауссово (RBF):} $k(x,z)=\exp\bigl(-\|x-z\|^2/(2\sigma^2)\bigr)$;
+    \item \textbf{лапласовское:} $k(x,z)=\exp(-\|x-z\|_1/\sigma)$;
+    \item \textbf{сигмоидальное:} $k(x,z)=\tanh(\kappa x^\top z+\theta)$ (используют, но корректность как Mercer-ядра зависит от параметров).
+\end{itemize}
+
+\FloatBarrier
+
+\section{Сведите задачу многоклассовой классификации к бинарной методами one–versus–one и one–versus–all.}
+
+\textbf{Постановка:} многоклассовая классификация $y\in\{1,\dots,K\}$.
+Идея редукции: заменить одну $K$-классовую задачу набором бинарных и собрать решение по их ответам.
+
+\medskip
+\textbf{One--versus--all (OvA, one--vs--rest):}
+строим $K$ бинарных классификаторов $g_k(x)$, где
+положительный класс --- $C_k$, отрицательный --- «все остальные» $\cup_{j\ne k} C_j$.
+На тесте получаем оценки (метрика качества/маржу/вероятность) $s_k(x)$ и выбираем
+\[
+\hat y(x)=\arg\max_{k=1,\dots,K} s_k(x).
+\]
+(В лекциях: при калиброванных вероятностях можно брать $\arg\max_k\ \mathbb P(y=k\mid x)$.)
+Число моделей: $K$.
+
+\medskip
+\textbf{One--versus--one (OvO):}
+строим бинарный классификатор для каждой пары классов $(k,\ell)$:
+обучение ведём только на объектах из $C_k\cup C_\ell$.
+Всего моделей: $\binom{K}{2}=K(K-1)/2$.
+На тесте каждый классификатор «голосует» за один из двух классов;
+итоговый класс выбираем по большинству голосов:
+\[
+\hat y(x)=\arg\max_{k}\ \#\{\ell\ne k:\ g_{k\ell}(x)=k\}.
+\]
+(В лекциях иногда упоминают вариант с суммой маржин/вероятностей вместо простого голосования.)
+
+\medskip
+\textbf{Сравнение (по лекциям, кратко):}
+OvA --- меньше моделей, но каждый классификатор видит «смешанный» отрицательный класс;
+OvO --- больше моделей, но каждая бинарная задача проще (только две категории) и часто стабильнее для SVM.
+
+\FloatBarrier
+
+\section{Дайте постановку метода SVR. Сведите задачи c мягким и жестким зазором к задачам условной оптимизации.}
+
+\textbf{SVR (Support Vector Regression):}
+строим регрессионную функцию вида
+\[
+ f(x)=w^\top x+b
+\]
+и хотим, чтобы предсказания лежали внутри ``$\varepsilon$-трубки'' вокруг истинных значений $y_i$.
+Используется $\varepsilon$-нечувствительная ошибка:
+\(
+|y-f(x)|_\varepsilon:=\max\{0,\ |y-f(x)|-\varepsilon\}.
+\)
+
+\medskip
+\textbf{Жёсткий зазор (hard margin SVR):}
+требуем, чтобы все точки попадали в $\varepsilon$-трубку.
+\emph{Условная оптимизация} (primal):
+\[
+\min_{w,b}\ \frac12\|w\|^2
+\quad\text{s.t.}\quad
+\begin{cases}
+ y_i-(w^\top x_i+b)\le \varepsilon,\\
+ (w^\top x_i+b)-y_i\le \varepsilon,
+\end{cases}
+\quad i=1,\dots,n.
+\]
+Эквивалентно: $|y_i-f(x_i)|\le\varepsilon$ для всех $i$.
+
+\medskip
+\textbf{Мягкий зазор (soft margin SVR):}
+разрешаем выходить за $\varepsilon$-трубку, вводя послабления $\xi_i,\xi_i^*\ge 0$ и штраф $C>0$.
+\emph{Условная оптимизация}:
+\[
+\min_{w,b,\xi,\xi^*}\ \frac12\|w\|^2 + C\sum_{i=1}^{n}(\xi_i+\xi_i^*)
+\]
+\[
+\text{s.t.}\quad
+\begin{cases}
+ y_i-(w^\top x_i+b)\le \varepsilon+\xi_i,\\
+ (w^\top x_i+b)-y_i\le \varepsilon+\xi_i^*,\\
+ \xi_i\ge 0,\ \xi_i^*\ge 0,
+\end{cases}
+\quad i=1,\dots,n.
+\]
+(В лекциях: это эквивалентно минимизации суммы $\varepsilon$-нечувствительных потерь с регуляризацией $\tfrac12\|w\|^2$.)
+
+\FloatBarrier
+
+\section{Сформулируйте теорему Куна–Таккера. Выведите двойственную задачу для метода SVR с мягким зазором. Опишите ядерный метод SVR.}
+
+\textbf{KKT (напоминание):}
+для выпуклой задачи при выполнении условия Слейтера оптимум описывается условиями:
+допустимость (primal/dual), стационарность $\nabla_x\mathcal L=0$ и комплементарная нежёсткость.
+
+\medskip
+\textbf{SVR с мягким зазором (primal):}
+(из предыдущего пункта)
+\[
+\min_{w,b,\xi,\xi^*}\ \frac12\|w\|^2 + C\sum_{i=1}^{n}(\xi_i+\xi_i^*)
+\]
+\[
+\text{s.t.}\quad
+\begin{cases}
+ y_i-(w^\top x_i+b)\le \varepsilon+\xi_i,\\
+ (w^\top x_i+b)-y_i\le \varepsilon+\xi_i^*,\\
+ \xi_i\ge 0,\ \xi_i^*\ge 0.
+\end{cases}
+\]
+
+\medskip
+\textbf{Двойственная задача (вывод через Лагранжиан):}
+вводим множители $\alpha_i,\alpha_i^*\ge 0$ для первых двух ограничений и
+$\eta_i,\eta_i^*\ge 0$ для неотрицательности $\xi_i,\xi_i^*$.
+Лагранжиан:
+\[
+\mathcal L=\frac12\|w\|^2 + C\sum_i(\xi_i+\xi_i^*)
++\sum_i \alpha_i\bigl(y_i-\varepsilon-\xi_i-(w^\top x_i+b)\bigr)
++\sum_i \alpha_i^*\bigl((w^\top x_i+b)-y_i-\varepsilon-\xi_i^*\bigr)
+-\sum_i\eta_i\xi_i-\sum_i\eta_i^*\xi_i^*.
+\]
+Стационарность:
+\[
+\frac{\partial\mathcal L}{\partial w}=0\Rightarrow w=\sum_i(\alpha_i-\alpha_i^*)x_i,
+\qquad
+\frac{\partial\mathcal L}{\partial b}=0\Rightarrow \sum_i(\alpha_i-\alpha_i^*)=0,
+\]
+\[
+\frac{\partial\mathcal L}{\partial \xi_i}=0\Rightarrow C-\alpha_i-\eta_i=0\Rightarrow 0\le \alpha_i\le C,
+\qquad
+\frac{\partial\mathcal L}{\partial \xi_i^*}=0\Rightarrow C-\alpha_i^*-\eta_i^*=0\Rightarrow 0\le \alpha_i^*\le C.
+\]
+Подставляя $w$, получаем двойственную задачу:
+\[
+\max_{\alpha,\alpha^*}\ -\frac12\sum_{i=1}^{n}\sum_{j=1}^{n}(\alpha_i-\alpha_i^*)(\alpha_j-\alpha_j^*)\,\langle x_i,x_j\rangle
+-\varepsilon\sum_{i=1}^{n}(\alpha_i+\alpha_i^*)
++\sum_{i=1}^{n} y_i(\alpha_i-\alpha_i^*)
+\]
+\[
+\text{s.t.}\quad \sum_{i=1}^{n}(\alpha_i-\alpha_i^*)=0,\qquad 0\le \alpha_i\le C,\ \ 0\le \alpha_i^*\le C.
+\]
+
+\medskip
+\textbf{Решающее правило (линейный SVR):}
+\[
+ f(x)=\sum_{i=1}^{n}(\alpha_i-\alpha_i^*)\,\langle x_i,x\rangle + b.
+\]
+По KKT ненулевые $(\alpha_i-\alpha_i^*)$ соответствуют \emph{опорным векторам} (точкам на/вне $\varepsilon$-трубки).
+$b$ находят из KKT, используя любой объект с $0<\alpha_i<C$ или $0<\alpha_i^*<C$:
+\(
+ y_i-f(x_i)=\varepsilon
+\) или \(
+ f(x_i)-y_i=\varepsilon
+\).
+
+\medskip
+\textbf{Ядерный SVR:}
+заменяем скалярное произведение на ядро $k(x,z)=\langle\phi(x),\phi(z)\rangle$.
+Тогда в двойственной задаче просто
+\(
+\langle x_i,x_j\rangle\to k(x_i,x_j)
+\), а предсказание
+\[
+ f(x)=\sum_{i=1}^{n}(\alpha_i-\alpha_i^*)\,k(x_i,x)+b.
+\]
+
+\FloatBarrier
+
+\section{Опишите метод KNN. Приведите примеры различных метрик. Что такое весовой KNN?}
+
+\textbf{$k$NN (k-nearest neighbors, метод $k$ ближайших соседей):}
+непараметрический метод метрического обучения:
+для нового объекта $x$ ищем $k$ ближайших к нему обучающих объектов по выбранной метрике $d(\cdot,\cdot)$
+и агрегируем их ответы.
+
+\medskip
+\textbf{Алгоритм (по лекциям):}
+\begin{enumerate}
+    \item Выбрать $k$ и метрику $d$.
+    \item Для запроса $x$ посчитать расстояния $d(x,x_i)$ до всех объектов обучающей выборки.
+    \item Взять множество индексов $\mathcal N_k(x)$ --- $k$ ближайших.
+    \item \textbf{Классификация:} выбрать класс по большинству голосов:
+    \[
+    \hat y(x)=\arg\max_{c}\ \sum_{i\in\mathcal N_k(x)} \mathbb I\{y_i=c\}.
+    \]
+    \textbf{Регрессия:} усреднить ответы:
+    \[
+    \hat y(x)=\frac1k\sum_{i\in\mathcal N_k(x)} y_i.
+    \]
+\end{enumerate}
+
+\medskip
+\textbf{Примеры метрик/мер близости:}
+\begin{itemize}
+    \item евклидова: $\|x-z\|_2$;
+    \item манхэттенская: $\|x-z\|_1$;
+    \item Минковского: $\|x-z\|_p$;
+    \item Чебышёва: $\|x-z\|_\infty$;
+    \item косинусная «дистанция»: $1-\frac{\langle x,z\rangle}{\|x\|\,\|z\|}$;
+    \item Махаланобиса: $\sqrt{(x-z)^\top S^{-1}(x-z)}$.
+\end{itemize}
+
+\medskip
+\textbf{Весовой $k$NN:}
+соседи голосуют/усредняются с весами $w_i(x)$, зависящими от расстояния (ближе --- больше вес).
+\begin{itemize}
+    \item \textbf{Классификация:}
+    \[
+    \hat y(x)=\arg\max_{c}\ \sum_{i\in\mathcal N_k(x)} w_i(x)\,\mathbb I\{y_i=c\}.
+    \]
+    \item \textbf{Регрессия:}
+    \[
+    \hat y(x)=\frac{\sum_{i\in\mathcal N_k(x)} w_i(x)\,y_i}{\sum_{i\in\mathcal N_k(x)} w_i(x)}.
+    \]
+\end{itemize}
+Типичные веса (как в лекциях): $w_i(x)=\frac{1}{d(x,x_i)+\delta}$ (малое $\delta>0$ для устойчивости)
+или через ядро $w_i(x)=K\bigl( d(x,x_i)/h\bigr)$ (связь со «скользящим окном»).
+
+\medskip
+\textbf{Замечания:} выбор $k$ обычно делают по CV; наивная сложность запроса $O(nm)$ по вычислению расстояний
+(ускорение: k-d tree / ball tree / ANN).
+
+\FloatBarrier
+
+
+\section{Опишите метод скользящего окна для метрической классификации и регрессии. Приведите примеры различных ядер.}
+
+\textbf{Метод скользящего окна (Parzen window / kernel method) в метрической постановке:}
+задаём метрику $d(\cdot,\cdot)$ и ширину окна (bandwidth) $h>0$.
+Для запроса $x$ каждой обучающей точке $x_i$ назначаем вес
+\[
+ w_i(x)=K\Bigl(\frac{d(x,x_i)}{h}\Bigr),
+\]
+где $K(\cdot)\ge 0$ --- ядро (обычно убывает с ростом аргумента).
+Интуиция: ближе $x_i$ к $x$ --- больше вклад.
+
+\medskip
+\textbf{Классификация (скользящее окно):}
+вес «за класс» равен сумме весов точек этого класса:
+\[
+ S_c(x)=\sum_{i=1}^{n} w_i(x)\,\mathbb I\{y_i=c\},
+\qquad
+\hat y(x)=\arg\max_{c} S_c(x).
+\]
+(В лекциях: это эквивалентно plug-in байесовскому правилу через оценку условных плотностей Парзена по классам.)
+
+\medskip
+\textbf{Регрессия (Надарая--Уотсон):}
+\[
+ \hat y(x)=\frac{\sum_{i=1}^{n} w_i(x)\,y_i}{\sum_{i=1}^{n} w_i(x)}.
+\]
+
+\medskip
+\textbf{Два варианта окна (как обычно в лекциях):}
+\begin{itemize}
+    \item \textbf{фиксированное окно:} $h$ фиксировано;
+    \item \textbf{переменное окно:} $h=h(x)$ берут как расстояние до $k$-го соседа (связь с $k$NN).
+\end{itemize}
+
+\medskip
+\textbf{Примеры ядер $K(t)$:}
+\begin{itemize}
+    \item \textbf{прямоугольное (uniform window):}
+    $K(t)=\mathbb I\{t\le 1\}$;
+    \item \textbf{треугольное:}
+    $K(t)=\max\{0,\ 1-t\}$;
+    \item \textbf{Эпанечникова:}
+    $K(t)=\max\{0,\ 1-t^2\}$;
+    \item \textbf{гауссово:}
+    $K(t)=\exp(-t^2/2)$;
+    \item \textbf{лапласовское:}
+    $K(t)=\exp(-t)$.
+\end{itemize}
+
+\textbf{Роль $h$:} малое $h$ --- мало сглаживания (риск переобучения), большое $h$ --- сильное сглаживание (риск недообучения).
+
+\FloatBarrier
+
+\section{Дайте математическое (вероятностное) обоснование методов KNN и скользящего окна классификации и регрессии.}
+
+\textbf{Идея (по лекциям):} и $k$NN, и «скользящее окно» --- это \emph{локальные plug--in оценки} байесовских правил
+(через оценку постериоров/плотностей) и/или оценка регрессионной функции $m(x)=\mathbb E[Y\mid X=x]$.
+
+\medskip
+\textbf{Классификация: байесовское правило.}
+Для $K$ классов оптимальный по 0--1 потере классификатор:
+\[
+\hat y(x)=\arg\max_{c\in\{1,\dots,K\}} \mathbb P(Y=c\mid X=x)
+=\arg\max_c\ \pi_c\,f_c(x),
+\]
+где $\pi_c=\mathbb P(Y=c)$, $f_c(x)=p(x\mid Y=c)$.
+\emph{Обоснование} $k$NN/окон: заменить неизвестные величины на локальные оценки.
+
+\medskip
+\textbf{Скользящее окно: оценка плотностей Парзена (KDE).}
+Для каждого класса оцениваем условную плотность:
+\[
+\hat f_c(x)=\frac{1}{n_c\,h^m}\sum_{i:\,y_i=c} K\Bigl(\frac{x-x_i}{h}\Bigr),
+\qquad n_c=\#\{i:y_i=c\},\ h>0.
+\]
+Тогда plug--in классификатор:
+\[
+\hat y(x)=\arg\max_c\ \hat\pi_c\,\hat f_c(x),\qquad \hat\pi_c=\frac{n_c}{n}.
+\]
+(Эквивалентно формуле из предыдущего пункта про окно: суммируем веса по классам.)
+
+\medskip
+\textbf{$k$NN: оценка плотности через объём шара.}
+Пусть $r_k(x)$ --- расстояние от $x$ до $k$-го соседа (в выбранной метрике), $V_m$ --- объём единичного шара.
+Тогда локальная оценка плотности (интуиция «$k$ точек в шаре радиуса $r_k$»):
+\[
+\hat f(x)\approx \frac{k}{n\,V_m\,r_k(x)^m},
+\qquad
+\hat f_c(x)\approx \frac{k_c(x)}{n_c\,V_m\,r_k(x)^m},
+\]
+где $k_c(x)$ --- число соседей класса $c$ среди $k$ ближайших.
+Подстановка в $\arg\max_c\ \pi_c f_c(x)$ даёт
+\[
+\hat y(x)=\arg\max_c\ k_c(x),
+\]
+т.е. \emph{голосование большинства} (весовой вариант получается, если вместо «шара» брать ядровые веса).
+
+\medskip
+\textbf{Регрессия: условное математическое ожидание.}
+Для квадратичной потери оптимальный прогноз (байесовский регрессор):
+\[
+ m(x)=\arg\min_a\ \mathbb E\bigl[(Y-a)^2\mid X=x\bigr]=\mathbb E[Y\mid X=x].
+\]
+Локальные методы оценивают $m(x)$ через локальное усреднение (закон больших чисел):
+\begin{itemize}
+    \item \textbf{$k$NN-регрессия:}\quad $\hat m(x)=\frac{1}{k}\sum_{i\in\mathcal N_k(x)} y_i$;
+    \item \textbf{окно (Надарая--Уотсон):}\quad $\hat m(x)=\dfrac{\sum_i w_i(x)y_i}{\sum_i w_i(x)}$, $\ w_i(x)=K(d(x,x_i)/h)$.
+\end{itemize}
+
+\medskip
+\textbf{Условия состоятельности (как обычно формулируют в лекциях):}
+для сходимости к байесовскому решению берут $h\to 0$, $n h^m\to\infty$ (для окна)
+или $k\to\infty$, $k/n\to 0$ (для $k$NN).
+
+\FloatBarrier
+
+\section{Выведите формулы локальной регрессии из МНК. Сравните локально–постоянную и локально–линейную регрессии.}
+
+\textbf{Локальная регрессия как взвешенный МНК (по лекциям):}
+фиксируем точку запроса $x$ и задаём веса $w_i(x)\ge 0$ (обычно через окно/ядро)
+\(
+ w_i(x)=K\bigl(d(x,x_i)/h\bigr).
+\)
+Далее подбираем параметры локальной модели, минимизируя \emph{взвешенную} сумму квадратов.
+
+\medskip
+\textbf{Локально--постоянная регрессия (Nadaraya--Watson):}
+берём модель $f(z)\equiv a$ в окрестности $x$ и решаем
+\[
+\hat a(x)=\arg\min_{a\in\mathbb R}\ \sum_{i=1}^{n} w_i(x)\,(y_i-a)^2.
+\]
+Условие первого порядка даёт
+\[
+\sum_i w_i(x)(y_i-\hat a)=0\ \Rightarrow\ \hat a(x)=\frac{\sum_{i=1}^{n} w_i(x)\,y_i}{\sum_{i=1}^{n} w_i(x)}.
+\]
+Это локально-взвешенное среднее (в точности формула из метода скользящего окна).
+
+\medskip
+\textbf{Локально--линейная регрессия:}
+аппроксимируем функцию в окрестности $x$ линейно:
+\(
+ f(z)\approx a+b^\top(z-x).
+\)
+Решаем взвешенный МНК
+\[
+(\hat a(x),\hat b(x))=\arg\min_{a,b}\ \sum_{i=1}^{n} w_i(x)\bigl(y_i-a-b^\top(x_i-x)\bigr)^2.
+\]
+В матричном виде: пусть
+\(
+Z=\begin{pmatrix}1&(x_1-x)^\top\\ \vdots&\vdots\\ 1&(x_n-x)^\top\end{pmatrix}\in\mathbb R^{n\times(1+m)},
+\)
+$W=\mathrm{diag}(w_1(x),\dots,w_n(x))$, $y=(y_1,\dots,y_n)^\top$.
+Тогда решение (нормальные уравнения) есть
+\[
+\begin{pmatrix}\hat a(x)\\ \hat b(x)\end{pmatrix}=(Z^\top W Z)^{-1}Z^\top W y,
+\qquad
+\hat f(x)=\hat a(x).
+\]
+
+\medskip
+\textbf{Сравнение (кратко по смыслу лекций):}
+\begin{itemize}
+    \item \textbf{Локально--постоянная:} проще, меньше параметров; но имеет больший \emph{смещённый} прогноз (bias), особенно на границах области и при неоднородной плотности $X$.
+    \item \textbf{Локально--линейная:} учитывает локальный наклон, обычно уменьшает bias (в т.ч. на границах), но дисперсия выше (оценивать нужно и $b$).
+    \item Обе зависят от выбора окна $h$ (bias--variance компромисс) и ядра $K$.
+\end{itemize}
+
+\FloatBarrier
+
+
+\section{Опишите деревья принятия решений, опишите алгоритм использования. Опишите алгоритм построения дерева, оцените его сложность.}
+
+\textbf{Дерево решений (Decision Tree):}
+модель вида «ветвления по признакам», где
+\begin{itemize}
+    \item во \emph{внутренних узлах} проверяется условие по одному признаку (обычно $x_j\le t$),
+    \item по результату идём в левое/правое поддерево,
+    \item в \emph{листье} хранится ответ: класс (классификация) или число (регрессия).
+\end{itemize}
+
+\medskip
+\textbf{Алгоритм использования (предсказание):}
+для объекта $x$ стартуем из корня и последовательно выполняем тесты в узлах до листа.
+\begin{itemize}
+    \item \textbf{Классификация:} в листе обычно берут $\hat y=\arg\max_c\ \hat p(c\mid \text{leaf})$ (большинство/частоты классов).
+    \item \textbf{Регрессия:} в листе берут среднее/медиану $\hat y$ по объектам, попавшим в лист.
+\end{itemize}
+Сложность предсказания: $O(\text{depth})$.
+
+\medskip
+\textbf{Построение дерева (жадный top--down, рекурсивное разбиение):}
+в каждом узле $S$ выбираем разбиение, которое максимально уменьшает «нечистоту» (impurity).
+\begin{enumerate}
+    \item Для каждого признака $j$ и порога $t$ рассматриваем сплит:
+    \[
+    S_L(j,t)=\{i\in S:\ x_{ij}\le t\},\qquad S_R(j,t)=S\setminus S_L(j,t).
+    \]
+    \item Считаем критерий качества сплита через уменьшение нечистоты:
+    \[
+    \Delta(j,t)=I(S)-\frac{|S_L|}{|S|}I(S_L)-\frac{|S_R|}{|S|}I(S_R).
+    \]
+    \item Выбираем $(j^*,t^*)=\arg\max\Delta(j,t)$, делим узел на два и повторяем рекурсивно.
+    \item Остановка (как в лекциях): узел «чистый», достигнут max\_depth, мало объектов (min\_samples\_leaf/split), либо выигрыш $\Delta$ слишком мал.
+\end{enumerate}
+(Конкретные формулы $I(\cdot)$: энтропия/Джини для классификации, дисперсия/МНК для регрессии --- в следующем вопросе.)
+
+\medskip
+\textbf{Оценка сложности:}
+пусть $n$ --- число объектов, $m$ --- число признаков.
+
+a) \textbf{Обучение (типично):} для каждого узла перебираем признаки и пороги.
+Если по каждому признаку пороги берутся по отсортированным значениям,
+то суммарно часто оценивают как
+\[
+O\bigl(m\,n\,\log n\bigr)
+\]
+(за счёт сортировок) и умножают на константу, зависящую от реализации.
+В худшем случае при крайне несбалансированном дереве глубина может быть $O(n)$.
+
+b) \textbf{Память:} хранение структуры дерева $O(\#\text{nodes})$.
+
+\FloatBarrier
+
+\section{Дайте определение информативности. Выведите ее формулы из минимизации функции потерь — абсолютной, бинарной, квадратичной, логарифма правдоподобия.}
+
+\textbf{Информативность (information gain) разбиения:}
+в деревьях в каждом узле $S$ вводят меру ``нечистоты'' $I(S)$ как \emph{минимальный эмпирический риск} при константном предсказании в этом узле.
+Для сплита $S\to (S_L,S_R)$ информативность (выигрыш) определяют как уменьшение нечистоты:
+\[
+\mathrm{Gain}(S\to S_L,S_R)= I(S)-\frac{|S_L|}{|S|}I(S_L)-\frac{|S_R|}{|S|}I(S_R).
+\]
+
+\medskip
+\textbf{Общий принцип вывода $I(S)$ из минимизации потерь:}
+\[
+I(S)=\min_{\theta}\ \frac{1}{|S|}\sum_{i\in S} \ell(y_i,\theta),
+\]
+где $\theta$ --- параметр константного ответа в листе (число $a$, класс $c$, вероятности $p$).
+
+\medskip
+\textbf{1) Абсолютная потеря (регрессия):}\quad $\ell(y,a)=|y-a|$.
+\[
+\hat a=\arg\min_a \sum_{i\in S}|y_i-a|\ \Rightarrow\ \hat a=\mathrm{med}(\{y_i\}_{i\in S}).
+\]
+Тогда
+\[
+I(S)=\frac{1}{|S|}\sum_{i\in S}|y_i-\mathrm{med}(y)|.
+\]
+
+\medskip
+\textbf{2) Квадратичная потеря (регрессия):}\quad $\ell(y,a)=(y-a)^2$.
+\[
+\hat a=\arg\min_a \sum_{i\in S}(y_i-a)^2\ \Rightarrow\ \hat a=\bar y_S:=\frac{1}{|S|}\sum_{i\in S}y_i.
+\]
+Тогда
+\[
+I(S)=\frac{1}{|S|}\sum_{i\in S}(y_i-\bar y_S)^2\quad (=\ \widehat{\mathrm{Var}}_S(Y)\ \text{с точностью до делителя}).
+\]
+
+\medskip
+\textbf{3) Бинарная (0--1) потеря (классификация):}\quad $\ell(y,c)=\mathbb I\{y\ne c\}$.
+\[
+\hat c=\arg\min_c\sum_{i\in S}\mathbb I\{y_i\ne c\}\ \Rightarrow\ \hat c=\arg\max_c\ n_c,
+\]
+где $n_c=\#\{i\in S: y_i=c\}$.
+Если $p_c=n_c/|S|$, то
+\[
+I(S)=\min_c\bigl(1-p_c\bigr)=1-\max_c p_c.
+\]
+
+\medskip
+\textbf{4) Логарифм правдоподобия (log-loss / кросс-энтропия):}
+в листе предсказываем вероятности классов $p=(p_1,\dots,p_K)$, $\sum_c p_c=1$,
+и берём
+\(
+\ell(y,p)=-\log p_y.
+\)
+Тогда
+\[
+\hat p=\arg\min_{p}\ \frac{1}{|S|}\sum_{i\in S} -\log p_{y_i}
+\ \Rightarrow\ \hat p_c=\frac{n_c}{|S|}.
+\]
+Минимальное значение потерь равно энтропии эмпирического распределения классов:
+\[
+I(S)= -\sum_{c=1}^{K} p_c\log p_c\quad (\text{в бинарном случае } -p\log p-(1-p)\log(1-p)).
+\]
+
+\FloatBarrier
+
+\section{Выведите формулу Bias–Variance trade–off для задачи регрессии. Покажите уменьшение дисперсии при применении пастинга.}
+
+\textbf{Bias--Variance trade--off (регрессия, квадратичная потеря):}
+пусть данные порождены как
+\[
+Y=f(X)+\varepsilon,\qquad \mathbb E[\varepsilon\mid X]=0,\qquad \mathrm{Var}(\varepsilon\mid X)=\sigma^2.
+\]
+Пусть $\hat f_D(x)$ --- предсказатель, обученный на случайной выборке $D$.
+Тогда при фиксированном $x$ имеем разложение ожидаемой ошибки:
+\[
+\mathbb E_{D,\varepsilon}\bigl[(Y-\hat f_D(x))^2\mid X=x\bigr]
+=\underbrace{\bigl(\mathrm{Bias}(x)\bigr)^2}_{\text{смещение}}+\underbrace{\mathrm{Var}(x)}_{\text{дисперсия}}+\underbrace{\sigma^2}_{\text{шум}}.
+\]
+Где
+\[
+\mathrm{Bias}(x)=\mathbb E_D[\hat f_D(x)]-f(x),\qquad
+\mathrm{Var}(x)=\mathbb E_D\bigl[(\hat f_D(x)-\mathbb E_D\hat f_D(x))^2\bigr].
+\]
+(Интегрируя по распределению $X$ получаем такое же разложение для риска $\mathbb E[(Y-\hat f(X))^2]$.)
+
+\medskip
+\textbf{Пастинг (pasting): уменьшение дисперсии при усреднении.}
+Пастинг в лекциях: обучаем $M$ моделей на разных подвыборках (обычно без возвращения),
+а предсказание берём усреднением
+\(
+\bar f(x)=\frac{1}{M}\sum_{m=1}^{M}\hat f^{(m)}(x).
+\)
+Тогда
+\[
+\mathrm{Var}(\bar f(x))
+=\frac{1}{M^2}\sum_{m=1}^{M}\mathrm{Var}(\hat f^{(m)}(x))
++\frac{2}{M^2}\sum_{m<\ell}\mathrm{Cov}(\hat f^{(m)}(x),\hat f^{(\ell)}(x)).
+\]
+Если модели одинаковы по дисперсии $\mathrm{Var}(\hat f^{(m)}(x))=v(x)$ и имеют попарную корреляцию $\rho(x)$,
+то
+\[
+\mathrm{Var}(\bar f(x))=v(x)\Bigl(\rho(x)+\frac{1-\rho(x)}{M}\Bigr)\le v(x),
+\]
+а при независимости ($\rho=0$) получаем $\mathrm{Var}(\bar f(x))=v(x)/M$.
+Смещение при простом усреднении не увеличивается (для $\mathbb E_D\hat f$ оно остаётся тем же),
+поэтому пастинг в первую очередь снижает дисперсию.
+
+\FloatBarrier
+
+
+\section{Опишите метод бэггинга. Приведите аргументы в пользу его обоснования.}
+
+\textbf{Бэггинг (bagging = bootstrap aggregating):}
+ансамбль, где базовые модели обучают на бутстрэп-подвыборках и затем агрегируют ответы.
+
+\medskip
+\textbf{Алгоритм (как в лекциях):}
+
+t) Пусть есть обучающая выборка $D=\{(x_i,y_i)\}_{i=1}^{n}$ и базовый алгоритм $a(\cdot)$.
+
+1) Для $m=1,\dots,M$:
+\begin{itemize}
+    \item Сформировать бутстрэп-выборку $D^{(m)}$ размера $n$ \emph{с возвращением} из $D$.
+    \item Обучить базовую модель $\hat f^{(m)}=a(D^{(m)})$.
+\end{itemize}
+
+2) Агрегация предсказаний:
+\begin{itemize}
+    \item \textbf{Регрессия:}\quad $\bar f(x)=\frac{1}{M}\sum_{m=1}^{M} \hat f^{(m)}(x)$.
+    \item \textbf{Классификация:}\quad либо голосование
+    $\hat y(x)=\arg\max_c \sum_{m=1}^{M}\mathbb I\{\hat y^{(m)}(x)=c\}$,
+    либо усреднение вероятностей $\bar p_c(x)=\frac{1}{M}\sum_m \hat p_c^{(m)}(x)$ и $\arg\max_c\bar p_c(x)$.
+\end{itemize}
+
+\medskip
+\textbf{Аргументы обоснования (по сути лекций):}
+\begin{itemize}
+    \item \textbf{Снижение дисперсии:} это усреднение коррелированных предсказателей.
+    При $\mathrm{Var}(\hat f^{(m)}(x))=v(x)$ и попарной корреляции $\rho(x)$:
+    \[
+    \mathrm{Var}(\bar f(x))=v(x)\Bigl(\rho(x)+\frac{1-\rho(x)}{M}\Bigr)\le v(x),
+    \]
+    а при $\rho\approx 0$ получаем почти $v/M$.
+
+    \item \textbf{Смещение обычно почти не растёт:} агрегация (простое среднее) меняет в основном дисперсию, поэтому бэггинг особенно полезен для \emph{нестабильных} алгоритмов (деревья), где дисперсия велика.
+
+    \item \textbf{Bootstrap даёт разнообразие моделей:} каждая $D^{(m)}$ отличается; в среднем уникальных объектов в бутстрэпе около $1-e^{-1}\approx 0.632$ от $n$ (остальные повторяются).
+
+    \item \textbf{OOB-оценка качества:} объекты, не попавшие в $D^{(m)}$ (out-of-bag), можно использовать для валидации без отдельного hold-out.
+\end{itemize}
+
+\FloatBarrier
+
+\section{Опишите алгоритм построения случайного леса. Как выбирать параметры леса?}
+
+\textbf{Случайный лес (Random Forest):}
+ансамбль деревьев, который сочетает идеи бэггинга (bootstrap) и дополнительной рандомизации при выборе признаков в узлах.
+Цель по лекциям: снизить корреляцию деревьев (\(\rho\)) и тем самым уменьшить дисперсию ансамбля при усреднении.
+
+\medskip
+\textbf{Алгоритм построения (кратко, по шагам):}
+пусть обучающая выборка $D=\{(x_i,y_i)\}_{i=1}^{n}$, число деревьев $M$.
+
+1) Для $m=1,\dots,M$:
+\begin{itemize}
+    \item Сформировать бутстрэп-выборку $D^{(m)}$ размера $n$ \emph{с возвращением} (как в бэггинге).
+    \item Обучить дерево решений на $D^{(m)}$, но в каждом узле:
+    \begin{itemize}
+        \item случайно выбрать подмножество признаков $\mathcal J$ размера $m_{\text{try}}$;
+        \item искать лучший сплит (максимум информативности / минимум нечистоты) \emph{только} среди признаков из $\mathcal J$.
+    \end{itemize}
+    \item Обычно деревья растят достаточно глубокими (малый bias), а variance снимают усреднением.
+\end{itemize}
+
+2) Агрегация ответов:
+\begin{itemize}
+    \item \textbf{Регрессия:}\quad $\bar f(x)=\frac{1}{M}\sum_{m=1}^{M}\hat f^{(m)}(x)$.
+    \item \textbf{Классификация:}\quad голосование большинства или усреднение вероятностей по деревьям.
+\end{itemize}
+
+3) \textbf{OOB (out-of-bag) оценка:}
+для каждого объекта $i$ можно предсказывать его ответом только тех деревьев, где он \emph{не} попал в бутстрэп.
+Это даёт оценку качества без отдельной валидационной выборки.
+
+\medskip
+\textbf{Как выбирать параметры леса (типовая логика лекций):}
+\begin{itemize}
+    \item \textbf{Число деревьев $M$ (n\_estimators):} увеличиваем, пока качество по OOB/CV не перестаёт расти.
+    Больше деревьев обычно снижает дисперсию, но даёт линейный рост времени.
+
+    \item \textbf{Число признаков в узле $m_{\text{try}}$ (max\_features):}
+    ключевой параметр, управляющий корреляцией деревьев.
+    Меньше $m_{\text{try}}$ $\Rightarrow$ меньше корреляция, но слабее отдельные деревья.
+    (Частое правило из лекций: для классификации $\sqrt{p}$, для регрессии $p/3$, где $p$ --- число признаков.)
+
+    \item \textbf{Сложность деревьев (max\_depth, min\_samples\_leaf / split):}
+    глубже дерево $\Rightarrow$ меньше bias, но больше variance.
+    В RF обычно допускают глубокие деревья, но при шуме/малом $n$ полезно ограничивать глубину или ставить min\_samples\_leaf.
+
+    \item \textbf{Bootstrap / размер подвыборки (bootstrap, max\_samples):}
+    стандартно bootstrap включён; при уменьшении max\_samples можно усилить разнообразие (но сделать деревья слабее).
+
+    \item \textbf{Прочее:}
+    критерий сплита (Gini/entropy, MSE/MAE), балансировка классов (class\_weight) --- подбирают по задаче и метрике.
+\end{itemize}
+
+\FloatBarrier
+
+\section{Опишите алгоритмы стекинга и блендинга. Как находить и использовать feature importance?}
+
+\textbf{Стекинг (stacking):}
+обучение нескольких моделей и использование их предсказаний как признаков для \emph{мета-модели}.
+В лекциях: отличие от бэггинга в том, что агрегирование делается \emph{другим алгоритмом}, а не простым усреднением.
+
+\medskip
+\textbf{Алгоритм стекинга (как в лекциях):}
+\begin{enumerate}
+    \item Разбить выборку на $K$ частей:
+    \(D=D_1\cup\dots\cup D_K\).
+    \item Обучить $K$ моделей одного типа $a_1,\dots,a_K$ (например, деревья), где $a_k$ обучается на $D\setminus D_k$.
+    \item Для каждого $k$ получить предсказания на отложенной части $D_k$ (то есть на данных, не использованных при обучении $a_k$).
+    \item Обучить мета-модель $b$ на парах
+    \[
+    b\;=\;a\Bigl(\{(\hat y_i, y_i)\}_{i=1}^{n}\Bigr),\qquad \hat y_i\ \text{--- предсказание базовой модели для } x_i.
+    \]
+    \item Для тестового объекта $x$ подать в $b$ агрегированное предсказание базовых моделей:
+    \[
+    \hat y(x)=b\Bigl(\frac{1}{K}\sum_{k=1}^{K} a_k(x)\Bigr).
+    \]
+\end{enumerate}
+
+\medskip
+\textbf{Блендинг (blending):}
+в лекциях отмечено, что он отличается от стекинга тем, что \emph{семплирование (разбиение на подвыборки) не делается}, и на каждую модель подаются одни и те же данные.
+
+\medskip
+\textbf{Feature importance (важность признаков) для деревьев/леса:}
+показывает вклад признака в предсказание; в лекциях задаётся через сумму уменьшений нечистоты по узлам.
+Для узла $v$:
+\[
+\mathrm{Imp}_v=\frac{|Q_v|}{|Q|}\Bigl(I(Q_v)-\frac{|Q_{v1}|}{|Q_v|}I(Q_{v1})-\frac{|Q_{v2}|}{|Q_v|}I(Q_{v2})\Bigr),
+\]
+где $Q_v$ --- множество объектов, попавших в узел $v$, $Q_{v1},Q_{v2}$ --- множества в его потомках после разбиения, $I(\cdot)$ --- нечистота (критерий) в узле.
+
+Пусть $V_j$ --- множество узлов, где при разбиении использовался признак $j$ ($j=1,\dots,p$). Тогда нормированная важность:
+\[
+R_j=\frac{\sum\limits_{v\in V_j}\mathrm{Imp}_v}{\sum\limits_{k=1}^{p}\sum\limits_{v\in V_k}\mathrm{Imp}_v},\qquad \sum_{j=1}^{p} R_j=1.
+\]
+Для случайного леса из $M$ деревьев усредняют по деревьям:
+\[
+\bar R_j=\frac{1}{M}\sum_{m=1}^{M} R_{mj}.
+\]
+
+\FloatBarrier
+
+\section{Опишите алгоритм градиентного бустинга.}
+
+\textbf{Градиентный бустинг (gradient boosting):}
+построение композиции (ансамбля) слабых алгоритмов в виде суммы
+\[
+F_M(x)=\sum_{m=0}^{M} \gamma_m h_m(x),
+\]
+где на каждом шаге добавляется новая базовая модель $h_m$ так, чтобы уменьшить выбранную функцию потерь.
+
+\medskip
+\textbf{Алгоритм (в терминах лекций: шаги функционального градиентного спуска):}
+пусть задана дифференцируемая по $F$ потеря $\ell(y,F(x))$.
+\begin{enumerate}
+    \item \textbf{Инициализация:} выбрать константное приближение
+    \[
+    F_0(x)=\arg\min_{c\in\mathbb R}\sum_{i=1}^{n}\ell(y_i,c).
+    \]
+
+    \item Для $m=1,\dots,M$:
+    \begin{enumerate}
+        \item \textbf{Псевдо-остатки (антиградиент):}
+        \[
+        r_i^{(m)}=-\left.\frac{\partial\,\ell(y_i,F(x_i))}{\partial F}\right|_{F=F_{m-1}},\qquad i=1,\dots,n.
+        \]
+
+        \item \textbf{Обучить базовый алгоритм} $h_m$ на выборке $\{(x_i,r_i^{(m)})\}$ (т.е. аппроксимировать антиградиент). 
+
+        \item \textbf{Подбор шага} (линейный поиск):
+        \[
+        \gamma_m=\arg\min_{\gamma\in\mathbb R}\sum_{i=1}^{n}\ell\bigl(y_i,\,F_{m-1}(x_i)+\gamma h_m(x_i)\bigr).
+        \]
+
+        \item \textbf{Обновление композиции:}
+        \[
+        F_m(x)=F_{m-1}(x)+\eta\,\gamma_m\,h_m(x),
+        \]
+        где $\eta\in(0,1]$ --- скорость обучения (shrinkage).
+    \end{enumerate}
+\end{enumerate}
+
+\medskip
+\textbf{Замечания (кратко):}
+обычно берут $h_m$ в виде небольшого дерева решений; регуляризация достигается малыми деревьями, малым $\eta$ и ограничением числа итераций $M$.
+
+\FloatBarrier
+
+\section{Выведите формулы градиентного бустинга на решающих деревьях для квадратичной и логистической функции потерь. Приведите примеры методов ускорения бустинга.}
+
+
+\textbf{Перцептрон Розенблатта (однослойный):}
+бинарный линейный классификатор
+\[
+ a(x)=w^\top x+b,\qquad \hat y=\mathrm{sign}(a(x)),\qquad y\in\{-1,+1\}.
+\]
+(Эквивалентно: $\hat y=\mathbb I\{a(x)\ge 0\}$ при $y\in\{0,1\}$.)
+
+\medskip
+\textbf{Правило обучения (perceptron learning rule, как в лекциях):}
+идём по объектам и исправляем веса только при ошибке.
+Если $y_i\,a(x_i)\le 0$ (объект классифицирован неверно), то
+\[
+ w\leftarrow w+\eta\,y_i x_i,\qquad b\leftarrow b+\eta\,y_i,
+\]
+где $\eta>0$ --- шаг.
+Если классификация верна ($y_i a(x_i)>0$), то обновления нет.
+
+\medskip
+\textbf{Свойство:} алгоритм сходится за конечное число шагов, если выборка линейно разделима (теорема о сходимости перцептрона).
+
+\medskip
+\textbf{Примеры других функций активации:}
+\begin{itemize}
+    \item пороговая (Heaviside): $\sigma(a)=\mathbb I\{a\ge 0\}$;
+    \item сигмоида: $\sigma(a)=\dfrac{1}{1+e^{-a}}$;
+    \item $\tanh$: $\sigma(a)=\tanh(a)$;
+    \item ReLU: $\sigma(a)=\max\{0,a\}$;
+    \item leaky ReLU: $\sigma(a)=\max\{\alpha a,a\}$, $\alpha\in(0,1)$.
+\end{itemize}
+
+\FloatBarrier
+
+\section{Опишите перцептрон Розенблатта. Приведите примеры других функций активации.}
+
+\textbf{Перцептрон Розенблатта (однослойный):}
+бинарный линейный классификатор
+\[
+a(x)=w^\top x+b,\qquad \hat y=\mathrm{sign}(a(x)),\qquad y\in\{-1,+1\}.
+\]
+(Эквивалентно: $\hat y=\mathbb I\{a(x)\ge 0\}$ при $y\in\{0,1\}$.)
+
+\medskip
+\textbf{Правило обучения (perceptron learning rule, как в лекциях):}
+обновляем параметры только при ошибке.
+Если $y_i\,a(x_i)\le 0$, то
+\[
+w\leftarrow w+\eta\,y_i x_i,\qquad b\leftarrow b+\eta\,y_i,
+\]
+где $\eta>0$ — шаг. Если $y_i\,a(x_i)>0$, то обновления нет.
+
+\medskip
+\textbf{Свойство:} при линейной разделимости обучающей выборки алгоритм сходится за конечное число шагов
+(теорема о сходимости перцептрона).
+
+\medskip
+\textbf{Примеры других функций активации:}
+\begin{itemize}
+    \item пороговая (Heaviside): $\sigma(a)=\mathbb I\{a\ge 0\}$;
+    \item сигмоида: $\sigma(a)=\dfrac{1}{1+e^{-a}}$;
+    \item $\tanh$: $\sigma(a)=\tanh(a)$;
+    \item ReLU: $\sigma(a)=\max\{0,a\}$;
+    \item leaky ReLU: $\sigma(a)=\max\{\alpha a,a\}$, $\alpha\in(0,1)$.
+\end{itemize}
+
+\FloatBarrier
+
+\section{Дайте определение нейронной сети. Сформулируйте теорему Цыбенко.}
+
+\textbf{Нейронная сеть (feed-forward, многослойный перцептрон):}
+параметрическое отображение $f_\theta:\mathbb R^m\to\mathbb R^q$, построенное как композиция слоёв вида
+\[
+    h^{(0)}=x,\qquad
+    h^{(\ell)}=\sigma\bigl(W^{(\ell)}h^{(\ell-1)}+b^{(\ell)}\bigr),\quad \ell=1,\dots,L-1,
+\]
+\[
+    f_\theta(x)=W^{(L)}h^{(L-1)}+b^{(L)}\quad(\text{или }\sigma \text{ на выходе, в зависимости от задачи}).
+\]
+Здесь $W^{(\ell)},b^{(\ell)}$ --- обучаемые параметры, $\sigma$ --- нелинейная функция активации.
+
+\medskip
+\textbf{Теорема Цыбенко (универсальная аппроксимация, 1989):}
+пусть $\sigma:\mathbb R\to\mathbb R$ --- \emph{сигмоидальная} функция (ограниченная, измеримая и такая, что
+$\lim_{t\to-\infty}\sigma(t)=0$, $\lim_{t\to+\infty}\sigma(t)=1$).
+Тогда для любого компактного множества $K\subset\mathbb R^m$ и любой непрерывной функции $f\in C(K)$, для любого $\varepsilon>0$ существует односкрытослойная сеть
+\[
+    F(x)=\sum_{j=1}^{N} a_j\,\sigma\bigl(w_j^\top x+b_j\bigr)
+\]
+такая, что
+\[
+    \sup_{x\in K}\,|F(x)-f(x)|<\varepsilon.
+\]
+То есть сеть с \emph{одним скрытым слоем} и сигмоидальной активацией может сколь угодно точно аппроксимировать любую непрерывную функцию на компакте.
+
+\FloatBarrier
+
+
+\section{Выведите формулы метода обратного распространения ошибок на примере сети с одним скрытым слоем. Сформулируйте общий принцип.}
+
+\textbf{Сеть с одним скрытым слоем (векторная запись):}
+пусть $x\in\mathbb R^{m}$, скрытый слой размера $h$, выход $\hat y\in\mathbb R^{q}$.
+\[
+ z^{(1)}=W^{(1)}x+b^{(1)},\qquad a^{(1)}=\sigma\bigl(z^{(1)}\bigr),
+\]
+\[
+ z^{(2)}=W^{(2)}a^{(1)}+b^{(2)},\qquad \hat y=\varphi\bigl(z^{(2)}\bigr).
+\]
+Функция потерь на одном объекте: $\mathcal L=\ell(\hat y,y)$.
+
+\medskip
+\textbf{Backprop (цепное правило):}
+вводим ``ошибки'' (дельты)
+\[
+\delta^{(2)}:=\frac{\partial \mathcal L}{\partial z^{(2)}}
+=\frac{\partial \mathcal L}{\partial \hat y}\odot \varphi'\bigl(z^{(2)}\bigr),
+\]
+где $\odot$ --- покомпонентное умножение.
+Тогда градиенты по параметрам выходного слоя:
+\[
+\frac{\partial \mathcal L}{\partial W^{(2)}}=\delta^{(2)}\,(a^{(1)})^{\top},\qquad
+\frac{\partial \mathcal L}{\partial b^{(2)}}=\delta^{(2)}.
+\]
+Далее ошибка переносится на скрытый слой:
+\[
+\delta^{(1)}:=\frac{\partial \mathcal L}{\partial z^{(1)}}
+=\bigl((W^{(2)})^{\top}\delta^{(2)}\bigr)\odot \sigma'\bigl(z^{(1)}\bigr).
+\]
+И градиенты по параметрам первого слоя:
+\[
+\frac{\partial \mathcal L}{\partial W^{(1)}}=\delta^{(1)}x^{\top},\qquad
+\frac{\partial \mathcal L}{\partial b^{(1)}}=\delta^{(1)}.
+\]
+
+\medskip
+\textbf{Общий принцип (для $L$ слоёв):}
+если
+$z^{(\ell)}=W^{(\ell)}a^{(\ell-1)}+b^{(\ell)}$, $a^{(\ell)}=\sigma\bigl(z^{(\ell)}\bigr)$,
+то
+\[
+\delta^{(L)}=\frac{\partial \mathcal L}{\partial z^{(L)}},\qquad
+\delta^{(\ell)}=\bigl((W^{(\ell+1)})^{\top}\delta^{(\ell+1)}\bigr)\odot \sigma'\bigl(z^{(\ell)}\bigr),\ \ \ell=L-1,\dots,1,
+\]
+а градиенты считаются локально в каждом слое:
+\[
+\frac{\partial \mathcal L}{\partial W^{(\ell)}}=\delta^{(\ell)}(a^{(\ell-1)})^{\top},\qquad
+\frac{\partial \mathcal L}{\partial b^{(\ell)}}=\delta^{(\ell)}.
+\]
+(Для мини-батча градиенты усредняют по объектам.)
+
+\FloatBarrier
+
+\section{Опишите способы инициализации Ксавье и Kaiming. Приведите их математический вывод.}
+
+\textbf{Цель инициализации (по лекциям):} выбрать дисперсию весов так, чтобы при прямом и обратном проходе не происходило взрыва/затухания дисперсий сигналов.
+Пусть в слое
+\[
+ z = Wx,\qquad x\in\mathbb R^{n_{\text{in}}},\ z\in\mathbb R^{n_{\text{out}}},
+\]
+где элементы $x_i$ независимы, $\mathbb E[x_i]=0$, $\mathrm{Var}(x_i)=q$, а веса $w_{ij}$ независимы, $\mathbb E[w_{ij}]=0$, $\mathrm{Var}(w_{ij})=s$.
+
+\medskip
+\textbf{Вывод условия по прямому проходу.}
+Для компоненты $z_j=\sum_{i=1}^{n_{\text{in}}} w_{ji}x_i$ имеем
+\[
+\mathrm{Var}(z_j)=\sum_{i=1}^{n_{\text{in}}}\mathrm{Var}(w_{ji}x_i)=n_{\text{in}}\,s\,q.
+\]
+Чтобы сохранялась дисперсия (в среднем) $\mathrm{Var}(z_j)\approx q$, нужно
+\[
+ n_{\text{in}}\,s\,q=q \ \Rightarrow\ s=\frac{1}{n_{\text{in}}}.
+\]
+
+\medskip
+\textbf{Вывод условия по обратному проходу.}
+Пусть $\delta=\partial\mathcal L/\partial z$ (градиент по предактивациям). Тогда для предыдущего слоя
+\[
+\delta^{\text{prev}} = W^\top \delta \quad (\text{без учёта производной активации, как в стандартном выводе}).
+\]
+Аналогично получаем
+\[
+\mathrm{Var}(\delta^{\text{prev}}_i)=n_{\text{out}}\,s\,\mathrm{Var}(\delta_j).
+\]
+Чтобы дисперсия градиента сохранялась, нужно $s=1/n_{\text{out}}$.
+
+\medskip
+\textbf{Инициализация Ксавье (Glorot/Xavier).}
+Компромисс между требованиями прямого и обратного проходов берут как среднее:
+\[
+\mathrm{Var}(w_{ij}) = s = \frac{2}{n_{\text{in}}+n_{\text{out}}}.
+\]
+Два стандартных варианта (для $w_{ij}$):
+\begin{itemize}
+    \item \textbf{Xavier normal:} $\;w_{ij}\sim\mathcal N\!\left(0,\;\frac{2}{n_{\text{in}}+n_{\text{out}}}\right)$.
+    \item \textbf{Xavier uniform:} $\;w_{ij}\sim\mathcal U\!\left[-a,a\right]$, где из $\mathrm{Var}(\mathcal U[-a,a])=a^2/3$ получаем
+    \[
+        a=\sqrt{\frac{6}{n_{\text{in}}+n_{\text{out}}}}.
+    \]
+\end{itemize}
+(В лекциях: обычно применяют для сигмоиды/$\tanh$ и «мягких» активаций.)
+
+\medskip
+\textbf{Инициализация Kaiming (He).}
+Для ReLU $\sigma(u)=\max\{0,u\}$ при симметричном $u$ вокруг нуля верно приближение
+\[
+\mathrm{Var}(\sigma(u))\approx \frac{1}{2}\,\mathrm{Var}(u).
+\]
+Чтобы после ReLU дисперсия сохранялась, нужно компенсировать фактор $1/2$:
+\[
+\mathrm{Var}(z)=n_{\text{in}}\,s\,q\ \Rightarrow\ \mathrm{Var}(\sigma(z))\approx \frac{1}{2}n_{\text{in}}\,s\,q\stackrel{!}{=}q
+\ \Rightarrow\ s=\frac{2}{n_{\text{in}}}.
+\]
+Стандартные варианты:
+\begin{itemize}
+    \item \textbf{He normal:} $\;w_{ij}\sim\mathcal N\!\left(0,\;\frac{2}{n_{\text{in}}}\right)$.
+    \item \textbf{He uniform:} $\;w_{ij}\sim\mathcal U\!\left[-a,a\right]$, где
+    \[
+        a=\sqrt{\frac{6}{n_{\text{in}}}}.
+    \]
+\end{itemize}
+Обобщение для leaky ReLU с наклоном $\alpha$ на отрицательной части (часто дают в лекциях):
+\[
+\mathrm{Var}(w)=\frac{2}{(1+\alpha^2)\,n_{\text{in}}}.
+\]
+
+\medskip
+\textbf{Замечание:} $n_{\text{in}}$ и $n_{\text{out}}$ --- это \emph{fan\_in} и \emph{fan\_out} (числа входов/выходов наблюдаемой нейронной связи; для свёрток берут ещё размер ядра).
+
+\FloatBarrier
+
+
+
+\section{Опишите прием Dropaut. Дайте его математическое обоснование.}
+
+\textbf{Dropout (лекционный смысл):} регуляризация нейросети случайным \emph{занулением} части нейронов (активаций) на обучении.
+Идея: заставить сеть не полагаться на отдельные «удачные» признаки и уменьшить переобучение.
+
+\medskip
+\textbf{Формализация (inverted dropout):}
+пусть для некоторого слоя получены активации $h\in\mathbb R^d$.
+На обучении генерируем маску Бернулли
+\[
+ m\sim\mathrm{Bernoulli}(p)^d,\qquad m_j\in\{0,1\},\quad \mathbb P(m_j=1)=p,
+\]
+и используем зашумлённые активации
+\[
+ \tilde h=\frac{m\odot h}{p},
+\]
+где $\odot$ --- покомпонентное умножение, $p$ --- вероятность «сохранения» нейрона.
+На тесте dropout \emph{не применяется}: берут $\tilde h=h$.
+
+\medskip
+\textbf{Почему делим на $p$ (сохранение матожидания):}
+\[
+\mathbb E[\tilde h_j]=\mathbb E\Bigl[\frac{m_j h_j}{p}\Bigr]=\frac{h_j}{p}\,\mathbb E[m_j]=\frac{h_j}{p}\,p=h_j.
+\]
+То есть в среднем слой на обучении «видит» те же масштабы, что и на тесте.
+
+\medskip
+\textbf{Математическое обоснование (как в лекциях):}
+обучение с dropout --- это минимизация \emph{ожидаемой} функции потерь по случайной маске:
+\[
+\min_{\theta}\ \mathbb E_{m}\Bigl[\,\frac1n\sum_{i=1}^{n}\ell\bigl(y_i, f_{\theta}(x_i; m)\bigr)\Bigr].
+\]
+Интерпретация: это приближённое усреднение по экспоненциальному числу под-сетей
+(каждая маска $m$ задаёт свою «подмодель»), т.е. \emph{model averaging}.
+За счёт этого уменьшается дисперсия предсказателя и улучшается обобщение.
+
+\medskip
+\textbf{Короткое замечание про эффект регуляризации:}
+в простых линейных/логистических моделях усреднение по бернуллиевскому мультипликативному шуму
+даёт добавку к целевой функции, ведущую себя как штраф на веса (эффект близок к $\ell_2$-регуляризации).
+(На уровне лекционной интуиции: dropout добавляет шум в признаки/активации, и модель вынуждена делать решения устойчивыми к этому шуму.)
+
+\medskip
+\textbf{Практические настройки (минимум):}
+обычно применяют к скрытым слоям; типичные $p$ в лекциях --- порядка $0.5$ для полносвязных слоёв и ближе к $0.8$--$0.9$ для свёрточных.
+\FloatBarrier
+
+\section{Опишите приемы изменения скорости обучения и нормализации для обучения нейросетей.}
+
+\textbf{Изменение скорости обучения (learning rate).}
+Градиентные методы обновляют параметры так:
+\[
+\theta_{t+1}=\theta_t-\eta_t\,g_t,\qquad g_t=\nabla_\theta \mathcal{L}(\theta_t),
+\]
+где $\eta_t$ можно делать зависящей от шага $t$: большой шаг в начале (быстрое обучение),
+малый в конце (стабильная сходимость).
+
+\textbf{Типичные расписания $\eta_t$:}
+\begin{itemize}
+    \item \textit{Step decay:} \quad $\eta_t=\eta_0\gamma^{\lfloor t/s\rfloor}$ \quad (каждые $s$ эпох умножаем на $\gamma<1$).
+    \item \textit{Экспоненциальный спад:} \quad $\eta_t=\eta_0 e^{-kt}$.
+    \item \textit{Гиперболический спад:} \quad $\eta_t=\dfrac{\eta_0}{1+kt}$.
+    \item \textit{Cosine annealing:}
+    \[
+    \eta_t=\eta_{\min}+\frac{\eta_{\max}-\eta_{\min}}{2}\bigl(1+\cos(\pi t/T)\bigr).
+    \]
+    \item \textit{Warmup:} первые $T_w$ шагов $\eta_t$ линейно растёт до $\eta_{\max}$ (часто помогает при больших батчах/Adam).
+    \item \textit{Warm restarts (SGDR):} cosine-расписание периодически “перезапускают”.
+\end{itemize}
+
+\textbf{Адаптивные методы как “покоординатная” настройка шага:}
+\begin{itemize}
+    \item \textit{AdaGrad:}\quad $G_t=\sum_{\tau=1}^t g_\tau\odot g_\tau$, \quad
+    $\theta\leftarrow \theta-\eta\,\dfrac{g_t}{\sqrt{G_t}+\varepsilon}$.
+    \item \textit{RMSProp:}\quad $v_t=\beta v_{t-1}+(1-\beta)g_t^2$, \quad
+    $\theta\leftarrow \theta-\eta\,\dfrac{g_t}{\sqrt{v_t}+\varepsilon}$.
+    \item \textit{Adam:}\quad
+    $m_t=\beta_1 m_{t-1}+(1-\beta_1)g_t$, \;
+    $v_t=\beta_2 v_{t-1}+(1-\beta_2)g_t^2$, \;
+    с bias-correction $\hat m_t,\hat v_t$:
+    \[
+    \theta\leftarrow \theta-\eta\,\frac{\hat m_t}{\sqrt{\hat v_t}+\varepsilon}.
+    \]
+\end{itemize}
+
+\textbf{Нормализация (зачем):} стабилизирует масштабы/распределения активаций и градиентов,
+обычно позволяет брать больший $\eta$, ускоряет и делает обучение устойчивее.
+
+\textbf{Нормализация входов:} стандартизация признаков
+\[
+x \leftarrow \frac{x-\mu}{\sigma}\quad (\text{часто по каждому признаку/каналу}).
+\]
+
+\textbf{Batch Normalization (BN).}
+Для активаций $x$ внутри мини-батча $B$:
+\[
+\mu_B=\frac{1}{|B|}\sum_{i\in B} x_i,\qquad
+\sigma_B^2=\frac{1}{|B|}\sum_{i\in B}(x_i-\mu_B)^2,
+\]
+\[
+\hat x_i=\frac{x_i-\mu_B}{\sqrt{\sigma_B^2+\varepsilon}},\qquad
+y_i=\gamma \hat x_i+\beta.
+\]
+На инференсе используют скользящие оценки $\mu,\sigma^2$ (накопленные при обучении).
+
+\textbf{LayerNorm / GroupNorm (когда батч маленький).}
+\begin{itemize}
+    \item \textit{LayerNorm:} нормируем внутри одного объекта по признакам (не зависит от размера батча).
+    \item \textit{GroupNorm:} нормируем по группам каналов (компромисс для CNN).
+\end{itemize}
+
+\FloatBarrier
+
+\end{document}
