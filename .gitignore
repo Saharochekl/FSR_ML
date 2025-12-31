@@ -13,3 +13,4 @@
 .venv
 *.png
 **/rugpt3small_warpeace_ft/
+**/data/
